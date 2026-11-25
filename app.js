@@ -1,6 +1,6 @@
-/* Sherehe – offline event planner. Everything is kept on this phone (localStorage); use More › Backup to save a copy. */
+/* Eventers (Sherehe) – offline event planner. Everything is kept on this phone (localStorage); use More › Backup to save a copy. */
 'use strict';
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const KEY = 'sherehe:data', PKEY = 'sherehe:prefs';
 const TABLES = ['events', 'tasks', 'lines', 'vendors', 'bookings', 'pledges', 'guests', 'items'];
 const TYPES = ['wedding', 'sendoff', 'kitchen', 'birthday', 'corporate', 'other'];
@@ -19,7 +19,7 @@ const TPL = {
 
 const I18N = {
   en: {
-    app_sub: 'Event planner', nav_home: 'Events', nav_vendors: 'Vendors', nav_more: 'More',
+    app_sub: 'Home of exclusive events', nav_home: 'Events', nav_vendors: 'Vendors', nav_more: 'More',
     t_wedding: 'Wedding', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Birthday', t_corporate: 'Company event', t_other: 'Other',
     c_venue: 'Venue', c_food: 'Food', c_drinks: 'Drinks', c_decor: 'Decor', c_sound: 'MC, sound and music', c_photo: 'Photo and video', c_transport: 'Transport', c_cards: 'Cards and printing', c_attire: 'Attire', c_other: 'Other',
     tab_tasks: 'Checklist', tab_budget: 'Budget', tab_bookings: 'Vendors', tab_pledges: 'Michango', tab_guests: 'Guests', tab_items: 'Programme',
@@ -47,12 +47,12 @@ const I18N = {
     invite_msg: (n, e, d, v, c) => 'Hello ' + n + ', you are invited to ' + e + (d ? ' on ' + d : '') + (v ? ' at ' + v : '') + '.' + (c ? ' Your card number is ' + c + '.' : '') + ' Please let us know if you will come.',
     prog_item: 'Programme item', new_item: 'Add item', what: 'What happens', no_items: 'No programme yet. Add the order of the day: arrival, entrance, speeches, food, cake, dance.', share_prog: 'Share programme',
     more_title: 'More', language: 'Language', theme: 'Look', th_auto: 'Phone', th_light: 'Light', th_dark: 'Dark',
-    backup: 'Save a backup', backup_sub: 'Download a file with everything. Keep it safe; this app keeps data only on this phone.', restore: 'Restore a backup', restore_sub: 'Replace what is here with a backup file.', restored: 'Backup restored', bad_file: 'That file is not a Sherehe backup.', restore_confirm: 'Replace everything on this phone with this backup?',
-    install: 'Install on this phone', install_sub: 'Puts Sherehe on the home screen and works without internet.', install_ios: 'In Safari tap Share, then Add to Home Screen.', install_and: 'In Chrome tap ⋮, then Install app or Add to Home screen.',
+    backup: 'Save a backup', backup_sub: 'Download a file with everything. Keep it safe; this app keeps data only on this phone.', restore: 'Restore a backup', restore_sub: 'Replace what is here with a backup file.', restored: 'Backup restored', bad_file: 'That file is not an Eventers backup.', restore_confirm: 'Replace everything on this phone with this backup?',
+    install: 'Install on this phone', install_sub: 'Puts Eventers on the home screen and works without internet.', install_ios: 'In Safari tap Share, then Add to Home Screen.', install_and: 'In Chrome tap ⋮, then Install app or Add to Home screen.',
     phone_only: 'Everything stays on this phone. Save a backup now and then.', version: 'Version', summary: 'Summary', all: 'All'
   },
   sw: {
-    app_sub: 'Mpangaji wa sherehe', nav_home: 'Matukio', nav_vendors: 'Wahudumu', nav_more: 'Zaidi',
+    app_sub: 'Nyumbani kwa matukio ya kipekee', nav_home: 'Matukio', nav_vendors: 'Wahudumu', nav_more: 'Zaidi',
     t_wedding: 'Harusi', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Siku ya kuzaliwa', t_corporate: 'Tukio la kampuni', t_other: 'Mengineyo',
     c_venue: 'Ukumbi', c_food: 'Chakula', c_drinks: 'Vinywaji', c_decor: 'Mapambo', c_sound: 'MC, sauti na muziki', c_photo: 'Picha na video', c_transport: 'Usafiri', c_cards: 'Kadi na uchapishaji', c_attire: 'Mavazi', c_other: 'Mengineyo',
     tab_tasks: 'Orodha', tab_budget: 'Bajeti', tab_bookings: 'Wahudumu', tab_pledges: 'Michango', tab_guests: 'Wageni', tab_items: 'Ratiba',
@@ -80,8 +80,8 @@ const I18N = {
     invite_msg: (n, e, d, v, c) => 'Habari ' + n + ', unaalikwa kwenye ' + e + (d ? ' tarehe ' + d : '') + (v ? ' ' + v : '') + '.' + (c ? ' Namba ya kadi yako ni ' + c + '.' : '') + ' Tafadhali tujulishe kama utafika.',
     prog_item: 'Kipengele cha ratiba', new_item: 'Ongeza kipengele', what: 'Kinachofanyika', no_items: 'Bado hakuna ratiba. Ongeza mpangilio wa siku: kuwasili, kuingia, hotuba, chakula, keki, ngoma.', share_prog: 'Shiriki ratiba',
     more_title: 'Zaidi', language: 'Lugha', theme: 'Mwonekano', th_auto: 'Simu', th_light: 'Mwanga', th_dark: 'Giza',
-    backup: 'Hifadhi nakala', backup_sub: 'Pakua faili lenye kila kitu. Liweke salama; programu hii inaweka data kwenye simu hii tu.', restore: 'Rejesha nakala', restore_sub: 'Badilisha kilichopo kwa faili la nakala.', restored: 'Nakala imerejeshwa', bad_file: 'Faili hili si nakala ya Sherehe.', restore_confirm: 'Badilisha kila kitu kwenye simu hii kwa nakala hii?',
-    install: 'Weka kwenye simu', install_sub: 'Inaweka Sherehe kwenye skrini ya mwanzo na inafanya kazi bila intaneti.', install_ios: 'Kwenye Safari bonyeza Share, kisha Add to Home Screen.', install_and: 'Kwenye Chrome bonyeza ⋮, kisha Install app au Add to Home screen.',
+    backup: 'Hifadhi nakala', backup_sub: 'Pakua faili lenye kila kitu. Liweke salama; programu hii inaweka data kwenye simu hii tu.', restore: 'Rejesha nakala', restore_sub: 'Badilisha kilichopo kwa faili la nakala.', restored: 'Nakala imerejeshwa', bad_file: 'Faili hili si nakala ya Eventers.', restore_confirm: 'Badilisha kila kitu kwenye simu hii kwa nakala hii?',
+    install: 'Weka kwenye simu', install_sub: 'Inaweka Eventers kwenye skrini ya mwanzo na inafanya kazi bila intaneti.', install_ios: 'Kwenye Safari bonyeza Share, kisha Add to Home Screen.', install_and: 'Kwenye Chrome bonyeza ⋮, kisha Install app au Add to Home screen.',
     phone_only: 'Kila kitu kinabaki kwenye simu hii. Hifadhi nakala mara kwa mara.', version: 'Toleo', summary: 'Muhtasari', all: 'Wote'
   }
 };
@@ -142,7 +142,7 @@ const evName = e => e ? e.name : '';
 const isPast = e => e.date && daysTo(e.date) < 0;
 
 /* ---------- chrome ---------- */
-const MARK = '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="10" fill="#0F0E0E"/><path fill="#F2B705" d="M24 9l2.9 8.1 7.7-3.7-3.7 7.7L39 24l-8.1 2.9 3.7 7.7-7.7-3.7L24 39l-2.9-8.1-7.7 3.7 3.7-7.7L9 24l8.1-2.9-3.7-7.7 7.7 3.7z"/><circle cx="24" cy="24" r="2.6" fill="#0F0E0E"/><circle cx="11" cy="11" r="2.2" fill="#C8211E"/><circle cx="38" cy="10" r="1.8" fill="#C8211E"/><circle cx="39" cy="37" r="2.4" fill="#C8211E"/><circle cx="10" cy="38" r="1.8" fill="#C8211E"/></svg>';
+const MARK = '<img src="icons/crest.png" alt="">';
 const ICON = {
   home: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   vendors: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>',
@@ -150,7 +150,7 @@ const ICON = {
 };
 function applyTheme() { if (P.theme === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', P.theme); }
 function renderChrome() {
-  $('#band').innerHTML = `<span class="mark">${MARK}</span><div class="brand"><h1>Sherehe</h1><p>${t('app_sub')}</p></div>`;
+  $('#band').innerHTML = `<span class="mark">${MARK}</span><div class="brand"><h1>Eventers</h1><p>${t('app_sub')}</p></div>`;
   const cur = ui.view === 'event' ? 'home' : ui.view;
   $('#nav').className = 'nav-in n3';
   $('#nav').innerHTML = ['home', 'vendors', 'more'].map(v => `<button data-act="nav" data-v="${v}"${cur === v ? ' aria-current="page"' : ''}>${ICON[v]}<span>${t('nav_' + v)}</span></button>`).join('');
@@ -184,7 +184,7 @@ function vHome() {
     if (e.date && daysTo(e.date) <= 14) of('bookings', e.id).filter(b => n(b.agreed) > n(b.paid)).forEach(b => att.push([e.date, `<button class="li" data-act="open" data-id="${e.id}" data-tab="bookings" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left"><span><span class="who">${esc((get('vendors', b.vendorId) || {}).name || t('vendor'))}</span><br><span class="meta">${esc(e.name)}</span></span><span class="right">${chip('warn', t('balance', money(n(b.agreed) - n(b.paid))))}</span></button>`]));
   });
   if (att.length) h += `<section class="panel" id="attention"><h3>${t('attention')}</h3><div>${att.sort((a, b) => a[0].localeCompare(b[0])).slice(0, 8).map(a => a[1]).join('')}</div></section>`;
-  h += `<div class="list" id="events">${up.length ? up.map(eventCard).join('') : `<div class="empty">${t('no_events')}</div>`}</div>`;
+  h += `<div class="list" id="events">${up.length ? up.map(eventCard).join('') : `<div class="welcome"><img src="icons/eventers-logo.jpg" alt="Eventers – home of exclusive events"><p>${t('no_events')}</p></div>`}</div>`;
   if (past.length) h += `<button class="btn block" data-act="past">${ui.past ? t('hide_past') : t('show_past', past.length)}</button>` + (ui.past ? `<div class="list">${past.map(eventCard).join('')}</div>` : '');
   return h;
 }
@@ -280,7 +280,7 @@ function vMore() {
     `<div class="menu"><button data-act="backup" id="backupBtn"><span><span class="mt">${t('backup')}</span><br><span class="ms">${t('backup_sub')}</span></span><span class="go">›</span></button>` +
     `<button data-act="restore"><span><span class="mt">${t('restore')}</span><br><span class="ms">${t('restore_sub')}</span></span><span class="go">›</span></button>` +
     (standalone ? '' : `<button data-act="install"><span><span class="mt">${t('install')}</span><br><span class="ms">${installEvt ? t('install_sub') : ios ? t('install_ios') : t('install_and')}</span></span><span class="go">›</span></button>`) + `</div>` +
-    `<p class="hint">${t('phone_only')}</p><p class="hint">Sherehe, ${t('version')} ${VERSION}</p><input type="file" id="restoreFile" accept="application/json,.json" hidden>`;
+    `<p class="hint">${t('phone_only')}</p><p class="hint">Eventers, ${t('version')} ${VERSION}</p><input type="file" id="restoreFile" accept="application/json,.json" hidden>`;
 }
 
 /* ---------- forms ---------- */
@@ -444,7 +444,7 @@ const ACT = {
   'share-pledges': () => { const e = get('events', ui.eid), s = stats(e); shareText(e.name + ' – ' + t('k_michango') + '\n' + t('collected_of', money(s.collected), money(s.pledged)) + '\n\n' + of('pledges', e.id).sort(byName).map((p, i) => (i + 1) + '. ' + p.name + ' – ' + money(p.pledged) + ' / ' + money(paidOf(p)) + (paidOf(p) >= n(p.pledged) && n(p.pledged) ? ' ✓' : '')).join('\n')); },
   lang: b => { P.lang = b.dataset.v; savePrefs(); renderAll(); },
   theme: b => { P.theme = b.dataset.v; savePrefs(); renderAll(); },
-  backup: () => download('sherehe-backup-' + today() + '.json', 'application/json', JSON.stringify({ app: 'sherehe', version: VERSION, saved: new Date().toISOString(), data: DB })),
+  backup: () => download('eventers-backup-' + today() + '.json', 'application/json', JSON.stringify({ app: 'sherehe', version: VERSION, saved: new Date().toISOString(), data: DB })),
   restore: () => $('#restoreFile').click(),
   install: async () => { if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; render(); } }
 };

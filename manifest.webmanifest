@@ -1,13 +1,13 @@
 {
-  "name": "Sherehe – event planner",
-  "short_name": "Sherehe",
+  "name": "Eventers – Home of exclusive events",
+  "short_name": "Eventers",
   "description": "Plan events offline: checklist, budget, vendors, contributions, guests and programme.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0F0E0E",
-  "theme_color": "#0F0E0E",
+  "background_color": "#0A111B",
+  "theme_color": "#0A111B",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
