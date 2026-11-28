@@ -306,3 +306,58 @@ h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.06em}
 .welcome img{width:min(300px,80%);border-radius:14px}
 .kpi.hero .v{color:#D4AF37}
 .kpi .v{font-family:var(--body);font-weight:700;letter-spacing:0}
+
+/* ---------- Eventers 1.2: vendors by category, services, reports ---------- */
+.nav-in.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.seg button[aria-pressed="true"]{background:var(--band);color:#D4AF37}
+button.li{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:inherit;font:inherit}
+.btn.dashed{border-style:dashed;border-color:var(--gold);color:var(--gold-ink);background:none}
+small.gold,.gold{color:var(--gold-ink)}
+.av{width:44px;height:44px;border-radius:50%;flex:none;object-fit:cover;background:var(--band);color:#D4AF37;border:1.5px solid var(--gold);display:inline-grid;place-items:center;font-family:var(--display);font-weight:700;font-size:15px}
+img.av{background:#fff}
+.vrow{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.vrow:last-child{border-bottom:0}
+.vmain{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left;color:inherit}
+.vt{display:grid;gap:1px;min-width:0}
+.vt b{font-weight:700}
+.vt small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.vt small .chip{margin-left:4px}
+.ib{width:40px;height:40px;flex:none;border-radius:50%;border:1.5px solid var(--gold);background:none;color:var(--gold-ink);display:grid;place-items:center;font-size:22px;line-height:1;text-decoration:none}
+.ib svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+details.grp{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 14px}
+details.grp[open]{border-color:var(--gold)}
+details.grp summary{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer}
+details.grp summary::-webkit-details-marker{display:none}
+details.grp summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--gold-ink);border-bottom:2px solid var(--gold-ink);transform:rotate(45deg);margin:0 4px 4px}
+details.grp[open] summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+details.grp[open] summary{border-bottom:1px solid var(--line)}
+.gname{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.03em;flex:1;min-width:0}
+.gcount{font-size:14px;color:var(--gold-ink);font-weight:700}
+details.grp summary .ib{width:34px;height:34px;border-radius:9px;font-size:20px}
+details.grp .hint{padding:10px 0}
+.panel.svc .row{gap:8px}
+.panel.svc h3{margin:0}
+.logorow{display:flex;align-items:center;gap:14px}
+.logorow .av{width:64px;height:64px;font-size:20px}
+/* report page */
+.rep{background:#fff;color:#0B1526;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:grid;gap:12px;padding-bottom:16px;font-size:14px;color-scheme:light}
+.rep>*:not(.rep-head){margin:0 16px}
+.rep-head{background:#0A111B;border-bottom:3px solid #D4AF37;padding:12px 16px;display:flex;gap:12px;align-items:center}
+.rep-head img{width:48px;height:48px}
+.rep-head p{margin:0}
+.rep-head .brand{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.14em;color:#D4AF37;text-transform:uppercase;line-height:1.1}
+.rep-head .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#B9A867}
+.rep-title h1{font-family:var(--display);font-size:22px;margin:4px 0 2px;color:#0B1526;letter-spacing:.02em}
+.rep-title p{margin:0;color:#5E6676}
+.rep-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:640px){.rep-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.rep-kpis div{border:1px solid #E6DFCD;border-radius:10px;padding:8px 10px;display:grid}
+.rep-kpis span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5E6676;font-weight:700}
+.rep-kpis b{font-size:17px}
+.rep-kpis .hero{background:#0A111B;border-color:#0A111B}.rep-kpis .hero span{color:#B9A867}.rep-kpis .hero b{color:#D4AF37}
+.rep h3{color:#8A6B14;border-bottom:1px solid #D4AF37;padding-bottom:4px;margin:6px 16px 0}
+.rep p{margin:0}.rep p.muted,.rep footer,.rep small{color:#5E6676}
+.rep table{font-size:13px}.rep th{color:#5E6676;border-bottom-color:#E6DFCD}.rep td{border-bottom-color:#E6DFCD}
+.rep tr.tot td{border-top:2px solid #0B1526;font-weight:700}
+.rep footer{font-size:12px;border-top:1px solid #E6DFCD;padding-top:8px}
+.panel.svc>.row:first-child{flex-wrap:nowrap;align-items:flex-start}.panel.svc>.row:first-child h3{flex:1;min-width:0}.panel.svc>.row:first-child .btn{flex:none}

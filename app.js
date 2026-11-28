@@ -1,9 +1,11 @@
 /* Eventers (Sherehe) – offline event planner. Everything is kept on this phone (localStorage); use More › Backup to save a copy. */
 'use strict';
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const KEY = 'sherehe:data', PKEY = 'sherehe:prefs';
-const TABLES = ['events', 'tasks', 'lines', 'vendors', 'bookings', 'pledges', 'guests', 'items'];
-const TYPES = ['wedding', 'sendoff', 'kitchen', 'birthday', 'corporate', 'other'];
+const TABLES = ['events', 'tasks', 'lines', 'vendors', 'bookings', 'pledges', 'guests', 'items', 'cats'];
+const TYPES = ['wedding', 'sendoff', 'kitchen', 'birthday', 'corporate', 'trip', 'other'];
+const DEF_SVC = ['venue', 'food', 'drinks', 'decor', 'sound', 'transport'];  // services a new event starts with
+const PLAN_DAYS = 120;                                                  // plans remind about 4 months before
 const CATS = ['venue', 'food', 'drinks', 'decor', 'sound', 'photo', 'transport', 'cards', 'attire', 'other'];
 const TABS = ['tasks', 'budget', 'bookings', 'pledges', 'guests', 'items'];
 
@@ -14,15 +16,16 @@ const TPL = {
   kitchen: [[-45, 'Set the budget', 'Weka bajeti'], [-30, 'Book the venue and host', 'Pata ukumbi na mshereheshaji'], [-21, 'Send invitations', 'Tuma mialiko'], [-14, 'Decor and food', 'Mapambo na chakula'], [-7, 'Gifts list', 'Orodha ya zawadi'], [-2, 'Confirm everything', 'Thibitisha kila kitu']],
   birthday: [[-30, 'Set the budget', 'Weka bajeti'], [-21, 'Book the venue', 'Pata sehemu'], [-14, 'Send invitations', 'Tuma mialiko'], [-7, 'Order the cake', 'Agiza keki'], [-5, 'Food, drinks and decor', 'Chakula, vinywaji na mapambo'], [-1, 'Confirm guests', 'Thibitisha wageni']],
   corporate: [[-45, 'Agree budget and agenda', 'Kubaliana bajeti na ajenda'], [-30, 'Book the venue', 'Kodi ukumbi'], [-21, 'Sound, screen and projector', 'Sauti, skrini na projekta'], [-21, 'Send invitations', 'Tuma mialiko'], [-14, 'Catering', 'Chakula'], [-3, 'Confirm numbers and vendors', 'Thibitisha idadi na wahudumu'], [-1, 'Print programme and name list', 'Chapisha ratiba na orodha ya majina']],
+  trip: [[-60, 'Choose the destination and budget', 'Chagua sehemu na bajeti'], [-45, 'Book transport', 'Pata usafiri'], [-45, 'Book accommodation', 'Pata malazi'], [-21, 'Collect contributions', 'Kusanya michango'], [-3, 'Confirm the list of travellers', 'Thibitisha orodha ya wasafiri'], [-1, 'Confirm pickup time and place', 'Thibitisha muda na sehemu ya kuondoka']],
   other: [[-30, 'Set the budget', 'Weka bajeti'], [-21, 'Book the venue', 'Pata sehemu'], [-14, 'Invite guests', 'Alika wageni'], [-7, 'Food and drinks', 'Chakula na vinywaji'], [-2, 'Confirm everything', 'Thibitisha kila kitu']]
 };
 
 const I18N = {
   en: {
     app_sub: 'Home of exclusive events', nav_home: 'Events', nav_vendors: 'Vendors', nav_more: 'More',
-    t_wedding: 'Wedding', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Birthday', t_corporate: 'Company event', t_other: 'Other',
-    c_venue: 'Venue', c_food: 'Food', c_drinks: 'Drinks', c_decor: 'Decor', c_sound: 'MC, sound and music', c_photo: 'Photo and video', c_transport: 'Transport', c_cards: 'Cards and printing', c_attire: 'Attire', c_other: 'Other',
-    tab_tasks: 'Checklist', tab_budget: 'Budget', tab_bookings: 'Vendors', tab_pledges: 'Michango', tab_guests: 'Guests', tab_items: 'Programme',
+    t_wedding: 'Wedding', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Birthday', t_corporate: 'Company event', t_trip: 'Trip', t_other: 'Other',
+    c_venue: 'Venue', c_food: 'Food catering', c_drinks: 'Drinks and beverages', c_decor: 'Decoration', c_sound: 'Entertainment, MC and sound', c_photo: 'Photo and video', c_transport: 'Logistics and transport', c_cards: 'Cards and printing', c_attire: 'Attire', c_other: 'Other',
+    tab_tasks: 'Checklist', tab_budget: 'Budget', tab_bookings: 'Services', tab_pledges: 'Michango', tab_guests: 'Guests', tab_items: 'Programme',
     upcoming: 'Upcoming events', past: 'Past events', show_past: n => 'Show past events (' + n + ')', hide_past: 'Hide past events', new_event: 'New event', no_events: 'No events yet. Tap New event to plan the first one.',
     attention: 'Needs attention', overdue: d => 'Overdue since ' + d, bal_due: (v, e) => 'Owe ' + v + ' for ' + e,
     today: 'Today', tomorrow: 'Tomorrow', in_days: n => 'In ' + n + ' days', days_ago: n => n + ' days ago', no_date: 'No date yet',
@@ -46,6 +49,16 @@ const I18N = {
     paste_hint: 'One per line: name, phone. Example: Juma Ali, 0712 345 678', added_n: n => n + ' added',
     invite_msg: (n, e, d, v, c) => 'Hello ' + n + ', you are invited to ' + e + (d ? ' on ' + d : '') + (v ? ' at ' + v : '') + '.' + (c ? ' Your card number is ' + c + '.' : '') + ' Please let us know if you will come.',
     prog_item: 'Programme item', new_item: 'Add item', what: 'What happens', no_items: 'No programme yet. Add the order of the day: arrival, entrance, speeches, food, cake, dance.', share_prog: 'Share programme',
+    nav_reports: 'Reports', plans: 'Plans', plan_btn: 'Plan', new_plan: 'New plan', edit_plan: 'Edit plan', plan_chip: 'Plan', plan_hint: 'A plan is a future event. Eventers reminds you 4 months before its date.',
+    remind_on: d => 'Reminder on ' + d, start_planning: x => 'Start planning: ' + x, plan_due: x => 'Time to start planning ' + x, plan_note: (x, d) => x + ' is on ' + d + '. Time to start planning.', promote: 'Make it an event', promoted: 'Now an event, with its checklist',
+    add: 'Add', add_service: 'Add a service', no_provider: 'No provider yet.', remove: 'Remove', new_cat: 'New category', cat_name: 'Category name', cat_ph: 'e.g. Security, Tents and chairs', need_cat: 'Please write the category name.',
+    no_in_cat: 'No vendors in this category yet.', search_vendor: 'Search vendors', brand: 'Business or brand name', person: 'Contact person', logo_add: 'Add logo', logo_remove: 'Remove logo', bad_image: 'Could not read that picture.', call: 'Call',
+    reports: 'Reports', rep_event: 'Event report', rep_year: 'Yearly report', rep_pick: 'Event', rep_year_pick: 'Year', rep_pdf: 'Download PDF', rep_busy: 'Making the PDF…', rep_saved: 'PDF saved', report: 'Report',
+    k_when: 'When', rp_progress: 'Progress', rp_services: 'Service providers', agreed_s: 'Agreed', rp_bal: 'Balance', total: 'Total', rp_open: 'Still to do',
+    rp_guests: (i, y, m, no, a) => i + ' invited · ' + y + ' coming · ' + m + ' maybe · ' + no + ' not coming · ' + a + ' arrived',
+    rp_mich: (tg, p, c, l) => 'Target ' + tg + ' · pledged ' + p + ' · collected ' + c + ' · not yet paid ' + l,
+    rp_foot: d => 'Prepared with Eventers on ' + d + '.', rp_events: 'Events', rp_done: 'Completed', rp_year_title: y => 'Yearly report ' + y, rp_year_sub: x => x + (x === 1 ? ' event' : ' events'), rp_none: 'No events in this year yet.',
+    rp_by_type: 'Events by type', rp_future: 'Future events and plans', rp_kind: 'Kind', rp_event_k: 'Event', rp_count: 'Events', rp_page: (a, b) => 'Page ' + a + ' of ' + b, rp_plan_k: d => 'Plan (reminder ' + d + ')',
     more_title: 'More', language: 'Language', theme: 'Look', th_auto: 'Phone', th_light: 'Light', th_dark: 'Dark',
     backup: 'Save a backup', backup_sub: 'Download a file with everything. Keep it safe; this app keeps data only on this phone.', restore: 'Restore a backup', restore_sub: 'Replace what is here with a backup file.', restored: 'Backup restored', bad_file: 'That file is not an Eventers backup.', restore_confirm: 'Replace everything on this phone with this backup?',
     install: 'Install on this phone', install_sub: 'Puts Eventers on the home screen and works without internet.', install_ios: 'In Safari tap Share, then Add to Home Screen.', install_and: 'In Chrome tap ⋮, then Install app or Add to Home screen.',
@@ -53,9 +66,9 @@ const I18N = {
   },
   sw: {
     app_sub: 'Nyumbani kwa matukio ya kipekee', nav_home: 'Matukio', nav_vendors: 'Wahudumu', nav_more: 'Zaidi',
-    t_wedding: 'Harusi', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Siku ya kuzaliwa', t_corporate: 'Tukio la kampuni', t_other: 'Mengineyo',
-    c_venue: 'Ukumbi', c_food: 'Chakula', c_drinks: 'Vinywaji', c_decor: 'Mapambo', c_sound: 'MC, sauti na muziki', c_photo: 'Picha na video', c_transport: 'Usafiri', c_cards: 'Kadi na uchapishaji', c_attire: 'Mavazi', c_other: 'Mengineyo',
-    tab_tasks: 'Orodha', tab_budget: 'Bajeti', tab_bookings: 'Wahudumu', tab_pledges: 'Michango', tab_guests: 'Wageni', tab_items: 'Ratiba',
+    t_wedding: 'Harusi', t_sendoff: 'Send-off', t_kitchen: 'Kitchen party', t_birthday: 'Siku ya kuzaliwa', t_corporate: 'Tukio la kampuni', t_trip: 'Safari', t_other: 'Mengineyo',
+    c_venue: 'Ukumbi', c_food: 'Chakula (catering)', c_drinks: 'Vinywaji', c_decor: 'Mapambo', c_sound: 'Burudani, MC na sauti', c_photo: 'Picha na video', c_transport: 'Usafiri na logistics', c_cards: 'Kadi na uchapishaji', c_attire: 'Mavazi', c_other: 'Mengineyo',
+    tab_tasks: 'Orodha', tab_budget: 'Bajeti', tab_bookings: 'Huduma', tab_pledges: 'Michango', tab_guests: 'Wageni', tab_items: 'Ratiba',
     upcoming: 'Matukio yajayo', past: 'Yaliyopita', show_past: n => 'Onyesha yaliyopita (' + n + ')', hide_past: 'Ficha yaliyopita', new_event: 'Tukio jipya', no_events: 'Bado hakuna tukio. Bonyeza Tukio jipya kuanza.',
     attention: 'Yanahitaji kushughulikiwa', overdue: d => 'Imechelewa tangu ' + d, bal_due: (v, e) => 'Deni ' + v + ' kwa ' + e,
     today: 'Leo', tomorrow: 'Kesho', in_days: n => 'Baada ya siku ' + n, days_ago: n => 'Siku ' + n + ' zilizopita', no_date: 'Bado haina tarehe',
@@ -79,6 +92,16 @@ const I18N = {
     paste_hint: 'Mmoja kwa mstari: jina, simu. Mfano: Juma Ali, 0712 345 678', added_n: n => 'Wameongezwa ' + n,
     invite_msg: (n, e, d, v, c) => 'Habari ' + n + ', unaalikwa kwenye ' + e + (d ? ' tarehe ' + d : '') + (v ? ' ' + v : '') + '.' + (c ? ' Namba ya kadi yako ni ' + c + '.' : '') + ' Tafadhali tujulishe kama utafika.',
     prog_item: 'Kipengele cha ratiba', new_item: 'Ongeza kipengele', what: 'Kinachofanyika', no_items: 'Bado hakuna ratiba. Ongeza mpangilio wa siku: kuwasili, kuingia, hotuba, chakula, keki, ngoma.', share_prog: 'Shiriki ratiba',
+    nav_reports: 'Ripoti', plans: 'Mipango', plan_btn: 'Mpango', new_plan: 'Mpango mpya', edit_plan: 'Badili mpango', plan_chip: 'Mpango', plan_hint: 'Mpango ni tukio la baadaye. Eventers itakukumbusha miezi 4 kabla ya tarehe yake.',
+    remind_on: d => 'Ukumbusho tarehe ' + d, start_planning: x => 'Anza kupanga: ' + x, plan_due: x => 'Wakati wa kuanza kupanga ' + x, plan_note: (x, d) => x + ' ni tarehe ' + d + '. Wakati wa kuanza kupanga.', promote: 'Ifanye tukio', promoted: 'Sasa ni tukio, na orodha yake',
+    add: 'Ongeza', add_service: 'Ongeza huduma', no_provider: 'Bado hakuna mtoa huduma.', remove: 'Ondoa', new_cat: 'Kundi jipya', cat_name: 'Jina la kundi', cat_ph: 'mf. Ulinzi, Mahema na viti', need_cat: 'Tafadhali andika jina la kundi.',
+    no_in_cat: 'Bado hakuna wahudumu kwenye kundi hili.', search_vendor: 'Tafuta wahudumu', brand: 'Jina la biashara au brand', person: 'Mtu wa kuwasiliana', logo_add: 'Weka logo', logo_remove: 'Ondoa logo', bad_image: 'Imeshindikana kusoma picha hiyo.', call: 'Piga',
+    reports: 'Ripoti', rep_event: 'Ripoti ya tukio', rep_year: 'Ripoti ya mwaka', rep_pick: 'Tukio', rep_year_pick: 'Mwaka', rep_pdf: 'Pakua PDF', rep_busy: 'Inatengeneza PDF…', rep_saved: 'PDF imehifadhiwa', report: 'Ripoti',
+    k_when: 'Lini', rp_progress: 'Maendeleo', rp_services: 'Watoa huduma', agreed_s: 'Makubaliano', rp_bal: 'Salio', total: 'Jumla', rp_open: 'Bado kufanya',
+    rp_guests: (i, y, m, no, a) => 'Walioalikwa ' + i + ' · wanakuja ' + y + ' · labda ' + m + ' · hawatakuja ' + no + ' · wameingia ' + a,
+    rp_mich: (tg, p, c, l) => 'Lengo ' + tg + ' · ahadi ' + p + ' · zilizokusanywa ' + c + ' · bado ' + l,
+    rp_foot: d => 'Imeandaliwa na Eventers tarehe ' + d + '.', rp_events: 'Matukio', rp_done: 'Yamekamilika', rp_year_title: y => 'Ripoti ya mwaka ' + y, rp_year_sub: x => 'Matukio ' + x, rp_none: 'Bado hakuna matukio mwaka huu.',
+    rp_by_type: 'Matukio kwa aina', rp_future: 'Matukio ya baadaye na mipango', rp_kind: 'Aina', rp_event_k: 'Tukio', rp_count: 'Matukio', rp_page: (a, b) => 'Ukurasa ' + a + ' kati ya ' + b, rp_plan_k: d => 'Mpango (ukumbusho ' + d + ')',
     more_title: 'Zaidi', language: 'Lugha', theme: 'Mwonekano', th_auto: 'Simu', th_light: 'Mwanga', th_dark: 'Giza',
     backup: 'Hifadhi nakala', backup_sub: 'Pakua faili lenye kila kitu. Liweke salama; programu hii inaweka data kwenye simu hii tu.', restore: 'Rejesha nakala', restore_sub: 'Badilisha kilichopo kwa faili la nakala.', restored: 'Nakala imerejeshwa', bad_file: 'Faili hili si nakala ya Eventers.', restore_confirm: 'Badilisha kila kitu kwenye simu hii kwa nakala hii?',
     install: 'Weka kwenye simu', install_sub: 'Inaweka Eventers kwenye skrini ya mwanzo na inafanya kazi bila intaneti.', install_ios: 'Kwenye Safari bonyeza Share, kisha Add to Home Screen.', install_and: 'Kwenye Chrome bonyeza ⋮, kisha Install app au Add to Home screen.',
@@ -90,7 +113,7 @@ const I18N = {
 const P = Object.assign({ lang: 'sw', theme: 'auto' }, readJSON(PKEY) || {});
 const DB = Object.assign(Object.fromEntries(TABLES.map(t => [t, {}])), readJSON(KEY) || {});
 TABLES.forEach(tb => { if (!DB[tb] || typeof DB[tb] !== 'object') DB[tb] = {}; });
-const ui = { view: 'home', eid: '', tab: 'tasks', past: false, q: '', form: null };
+const ui = { view: 'home', eid: '', tab: 'tasks', past: false, q: '', vq: '', openCats: null, rtab: 'event', rid: '', ry: '', form: null };
 function readJSON(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { toast('Storage full'); } }
 function savePrefs() { localStorage.setItem(PKEY, JSON.stringify(P)); }
@@ -152,19 +175,55 @@ function applyTheme() { if (P.theme === 'auto') document.documentElement.removeA
 function renderChrome() {
   $('#band').innerHTML = `<span class="mark">${MARK}</span><div class="brand"><h1>Eventers</h1><p>${t('app_sub')}</p></div>`;
   const cur = ui.view === 'event' ? 'home' : ui.view;
-  $('#nav').className = 'nav-in n3';
-  $('#nav').innerHTML = ['home', 'vendors', 'more'].map(v => `<button data-act="nav" data-v="${v}"${cur === v ? ' aria-current="page"' : ''}>${ICON[v]}<span>${t('nav_' + v)}</span></button>`).join('');
+  $('#nav').className = 'nav-in n4';
+  $('#nav').innerHTML = ['home', 'vendors', 'reports', 'more'].map(v => `<button data-act="nav" data-v="${v}"${cur === v ? ' aria-current="page"' : ''}>${ICON[v]}<span>${t('nav_' + v)}</span></button>`).join('');
   document.documentElement.lang = P.lang; applyTheme();
 }
 function render() {
   if (ui.view === 'event' && !get('events', ui.eid)) ui.view = 'home';
-  $('#view').innerHTML = ui.view === 'event' ? vEvent() : ui.view === 'vendors' ? vVendors() : ui.view === 'more' ? vMore() : vHome();
-  const q = $('#gq'); if (q && ui.focusQ) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); ui.focusQ = false; }
+  $('#view').innerHTML = ui.view === 'event' ? vEvent() : ui.view === 'vendors' ? vVendors() : ui.view === 'more' ? vMore() : ui.view === 'reports' ? vReports() : vHome();
+  const q = ui.focusQ && document.getElementById(ui.focusQ); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); ui.focusQ = false; }
 }
 function renderAll() { renderChrome(); render(); }
 function go(v, eid) { ui.view = v; if (eid) { if (ui.eid !== eid) { ui.tab = 'tasks'; ui.q = ''; } ui.eid = eid; } renderAll(); window.scrollTo(0, 0); }
 const seg = (id, act, opts, cur) => `<div class="seg" id="${id}" role="group">${opts.map(o => `<button type="button" data-act="${act}" data-v="${o[0]}" aria-pressed="${cur === o[0]}">${esc(o[1])}</button>`).join('')}</div>`;
 const bar = (a, b, cls) => `<div class="bar ${cls || ''}"><i style="width:${b > 0 ? Math.min(100, Math.round(a / b * 100)) : 0}%"></i></div>`;
+
+/* ---------- categories, vendor pictures ---------- */
+const catList = () => CATS.concat(rows('cats').sort(byName).map(c => c.id));
+const catName = c => (DB.cats[c] && DB.cats[c].name) || (I18N.en['c_' + c] ? t('c_' + c) : t('c_other'));
+const catIdx = c => { const i = catList().indexOf(c); return i < 0 ? 999 : i; };
+const initials = x => String(x || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+const avatar = o => o && o.logo ? `<img class="av" src="${esc(o.logo)}" alt="">` : `<span class="av">${esc(initials(o && o.name))}</span>`;
+const callBtns = o => phone255(o && o.phone) ? `<a class="ib" href="tel:${esc(o.phone.replace(/\s/g, ''))}" aria-label="${esc(t('call'))}">${ICON.call}</a><a class="ib" href="${esc(waLink(o.phone, ''))}" target="_blank" rel="noopener" aria-label="WhatsApp">${ICON.chat}</a>` : '';
+const prow = (o, open, lines) => `<div class="vrow"><button class="vmain" ${open}>${avatar(o)}<span class="vt"><b>${esc(o.name || '—')}</b>${lines}</span></button>${callBtns(o)}</div>`;
+function shrinkImg(file, max) {
+  return new Promise((ok, bad) => { const r = new FileReader(); r.onerror = bad; r.onload = () => { const img = new Image(); img.onerror = bad; img.onload = () => {
+    const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', 0.85)); }; img.src = r.result; }; r.readAsDataURL(file); });
+}
+/* a service select with "+ New category" */
+const catSel = (id, val) => sel(id, t('service'), catOpts().concat([['__new', '+ ' + t('new_cat')]]), val) + `<div class="newbox" id="${id}-box" hidden>${inp(id + '-new', t('cat_name'), '', `placeholder="${esc(t('cat_ph'))}"`)}</div>`;
+const catInit = id => { const f = () => { $('#' + id + '-box').hidden = v(id) !== '__new'; }; $('#' + id).addEventListener('change', f); f(); };
+const catVal = id => { if (v(id) !== '__new') return v(id); const name = v(id + '-new').trim(); if (!name) return false; const ex = rows('cats').find(c => c.name.toLowerCase() === name.toLowerCase()); return ex ? ex.id : put('cats', { name }); };
+const evCats = e => { const x = new Set(e.services || DEF_SVC); of('bookings', e.id).forEach(b => x.add(b.service)); return [...x].sort((a, b) => catIdx(a) - catIdx(b)); };
+ICON.reports = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 17v-3M12.5 17v-6M16 17v-4"/></svg>';
+ICON.call = '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
+ICON.chat = '<svg viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.2z"/></svg>';
+
+/* ---------- plans: future events that remind 4 months before ---------- */
+const isPlan = e => e.kind === 'plan';
+const planDue = e => isPlan(e) && e.date && daysTo(e.date) <= PLAN_DAYS && daysTo(e.date) >= 0;
+const planRem = e => ({ id: e.id + '-plan', name: t('start_planning', e.name), date: addDays(e.date || today(), -PLAN_DAYS), time: '09:00', venue: '', notes: e.notes || '' });
+function checkPlans() {
+  const due = rows('events', e => planDue(e) && !e.notified); if (!due.length) return;
+  due.forEach(e => {
+    const body = t('plan_note', e.name, nice(e.date));
+    try { if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification('Eventers', { body, icon: 'icons/icon-192.png', tag: e.id })); else new Notification('Eventers', { body, icon: 'icons/icon-192.png' }); } } catch (x) {}
+    DB.events[e.id].notified = 1;
+  });
+  persist(); toast(t('plan_note', due[0].name, nice(due[0].date)));
+}
 
 /* ---------- views ---------- */
 function eventCard(e) {
@@ -176,24 +235,26 @@ function eventCard(e) {
     (s.pledged ? `<span class="c3">${esc(t('k_michango'))}: ${esc(t('collected_of', money(s.collected), money(s.pledged)))}</span>` : '') + `</button>`;
 }
 function vHome() {
-  const ev = rows('events'), up = ev.filter(e => !isPast(e)).sort(byDate), past = ev.filter(isPast).sort((a, b) => b.date.localeCompare(a.date));
-  let h = `<div class="row"><h2>${t('upcoming')}</h2><button class="btn primary" id="addBtn" data-act="form" data-f="event">+ ${t('new_event')}</button></div>`;
-  const att = [];
+  const ev = rows('events'), real = ev.filter(e => !isPlan(e)), plans = ev.filter(isPlan).sort(byDate), up = real.filter(e => !isPast(e)).sort(byDate), past = real.filter(isPast).sort((a, b) => b.date.localeCompare(a.date));
+  let h = `<div class="row"><h2>${t('upcoming')}</h2><div class="actions"><button class="btn" data-act="form" data-f="event" data-v="plan" id="planBtn">+ ${t('plan_btn')}</button><button class="btn primary" id="addBtn" data-act="form" data-f="event">+ ${t('new_event')}</button></div></div>`;
+  const att = [], li = (e, tab, who, meta, c) => [e.date || '', `<button class="li" data-act="open" data-id="${e.id}"${tab ? ` data-tab="${tab}"` : ''}><span><span class="who">${esc(who)}</span><br><span class="meta">${esc(meta)}</span></span><span class="right">${c}</span></button>`];
+  plans.filter(planDue).forEach(e => att.push(li(e, '', t('plan_due', e.name), nice(e.date), chip('warn', when(e.date)))));
   up.forEach(e => {
-    of('tasks', e.id).filter(x => !x.done && x.due && x.due < today()).forEach(x => att.push([x.due, `<button class="li" data-act="open" data-id="${e.id}" data-tab="tasks" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left"><span><span class="who">${esc(x.title)}</span><br><span class="meta">${esc(e.name)}</span></span><span class="right">${chip('bad', t('overdue', nice(x.due)))}</span></button>`]));
-    if (e.date && daysTo(e.date) <= 14) of('bookings', e.id).filter(b => n(b.agreed) > n(b.paid)).forEach(b => att.push([e.date, `<button class="li" data-act="open" data-id="${e.id}" data-tab="bookings" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left"><span><span class="who">${esc((get('vendors', b.vendorId) || {}).name || t('vendor'))}</span><br><span class="meta">${esc(e.name)}</span></span><span class="right">${chip('warn', t('balance', money(n(b.agreed) - n(b.paid))))}</span></button>`]));
+    of('tasks', e.id).filter(x => !x.done && x.due && x.due < today()).forEach(x => att.push(li({ id: e.id, date: x.due }, 'tasks', x.title, e.name, chip('bad', t('overdue', nice(x.due))))));
+    if (e.date && daysTo(e.date) <= 14) of('bookings', e.id).filter(b => n(b.agreed) > n(b.paid)).forEach(b => att.push(li(e, 'bookings', (get('vendors', b.vendorId) || {}).name || t('vendor'), e.name, chip('warn', t('balance', money(n(b.agreed) - n(b.paid)))))));
   });
   if (att.length) h += `<section class="panel" id="attention"><h3>${t('attention')}</h3><div>${att.sort((a, b) => a[0].localeCompare(b[0])).slice(0, 8).map(a => a[1]).join('')}</div></section>`;
-  h += `<div class="list" id="events">${up.length ? up.map(eventCard).join('') : `<div class="welcome"><img src="icons/eventers-logo.jpg" alt="Eventers – home of exclusive events"><p>${t('no_events')}</p></div>`}</div>`;
+  h += `<div class="list" id="events">${up.length ? up.map(eventCard).join('') : real.length ? empty(t('no_events')) : `<div class="welcome"><img src="icons/eventers-logo.jpg" alt="Eventers – home of exclusive events"><p>${t('no_events')}</p></div>`}</div>`;
+  if (plans.length) h += `<h3>${t('plans')}</h3><div class="list" id="plans">${plans.map(e => `<button class="card" data-act="open" data-id="${e.id}"><span class="c1"><b>${esc(e.name)}</b>${planDue(e) ? chip('warn', when(e.date)) : chip('plain', e.date ? nice(e.date) : t('no_date'))}</span><span class="c2"><span>${esc(t('t_' + e.type))}${e.date ? ' · ' + esc(t('remind_on', nice(addDays(e.date, -PLAN_DAYS)))) : ''}</span></span></button>`).join('')}</div>`;
   if (past.length) h += `<button class="btn block" data-act="past">${ui.past ? t('hide_past') : t('show_past', past.length)}</button>` + (ui.past ? `<div class="list">${past.map(eventCard).join('')}</div>` : '');
   return h;
 }
 function vEvent() {
   const e = get('events', ui.eid), s = stats(e), k = e.date ? daysTo(e.date) : null;
   let h = `<button class="btn link" data-act="nav" data-v="home">${t('back')}</button>`;
-  h += `<section class="evhead" id="evHead"><span class="sub">${esc(t('t_' + e.type))}</span><h2>${esc(e.name)}</h2>` +
+  h += `<section class="evhead" id="evHead"><span class="sub">${esc(t('t_' + e.type))}${e.kind === 'plan' ? ' · ' + esc(t('plan_chip')) : ''}</span><h2>${esc(e.name)}</h2>` +
     `<span class="count">${esc(k == null ? t('no_date') : when(e.date))}</span><span class="sub">${esc([e.date ? nice(e.date) + (e.time ? ', ' + e.time : '') : '', e.venue, e.host].filter(Boolean).join(' · '))}</span>` +
-    `<div class="actions"><button class="btn sm" data-act="form" data-f="event" data-id="${e.id}">${t('edit')}</button>${e.date ? `<button class="btn sm" data-act="form" data-f="calendar" data-id="${e.id}">${t('calendar')}</button>` : ''}<button class="btn sm" data-act="share-sum">${t('share')}</button></div></section>`;
+    (e.kind === 'plan' ? `<span class="sub">${esc(e.date ? t('remind_on', nice(addDays(e.date, -PLAN_DAYS))) : t('plan_hint'))}</span>` : '') + `<div class="actions">${e.kind === 'plan' ? `<button class="btn sm" data-act="promote">${t('promote')}</button>` : ''}<button class="btn sm" data-act="form" data-f="event" data-id="${e.id}">${t('edit')}</button><button class="btn sm" data-act="ev-report">${t('report')}</button>${e.date ? `<button class="btn sm" data-act="form" data-f="calendar" data-id="${e.id}">${t('calendar')}</button>` : ''}<button class="btn sm" data-act="share-sum">${t('share')}</button></div></section>`;
   h += `<div class="kpis" id="kpis">` +
     `<button class="kpi" data-act="tab" data-v="tasks"><span class="l">${t('k_tasks')}</span><span class="v">${s.done}/${s.tasks}</span>${bar(s.done, s.tasks, 'good')}</button>` +
     `<button class="kpi" data-act="tab" data-v="budget"><span class="l">${t('k_budget')}</span><span class="v">${money(s.paid)}</span><span class="s">${n(e.budget) ? t('b_budget') + ' ' + money(e.budget) : t('b_committed') + ' ' + money(s.committed)}</span></button>` +
@@ -219,20 +280,24 @@ const TAB = {
     const B = n(e.budget);
     let h = `<section class="panel" id="budgetSum"><div class="ledger">${B ? `<div><span>${t('b_budget')}</span><span>${money(B)}</span></div>` : ''}<div><span>${t('b_committed')}</span><span>${money(s.committed)}</span></div><div><span>${t('b_paid')}</span><span>${money(s.paid)}</span></div><div class="tot"><span>${t('b_left')}</span><span>${money(s.committed - s.paid)}</span></div></div>` +
       (B ? (s.committed > B ? `<div class="warnbox">${esc(t('b_over', money(s.committed - B)))}</div>` : `<p class="hint">${esc(t('b_under', money(B - s.committed)))}</p>`) + bar(s.committed, B) : '') + `</section>`;
-    const cs = CATS.filter(c => cat[c]);
-    if (cs.length) h += `<section class="panel"><h3>${t('by_cat')}</h3><div class="tw"><table><tr><th>${t('category')}</th><th class="r">${t('b_committed')}</th><th class="r">${t('b_paid')}</th></tr>${cs.map(c => `<tr><td>${esc(t('c_' + c))}</td><td class="r">${money(cat[c][0])}</td><td class="r">${money(cat[c][1])}</td></tr>`).join('')}</table></div></section>`;
+    const cs = catList().filter(c => cat[c]);
+    if (cs.length) h += `<section class="panel"><h3>${t('by_cat')}</h3><div class="tw"><table><tr><th>${t('category')}</th><th class="r">${t('b_committed')}</th><th class="r">${t('b_paid')}</th></tr>${cs.map(c => `<tr><td>${esc(catName(c))}</td><td class="r">${money(cat[c][0])}</td><td class="r">${money(cat[c][1])}</td></tr>`).join('')}</table></div></section>`;
     h += addBtn('line', t('new_cost'));
-    h += lines.length ? lines.sort((a, b) => CATS.indexOf(a.category) - CATS.indexOf(b.category)).map(x => `<button class="card" data-act="form" data-f="line" data-id="${x.id}"><span class="c1"><b>${esc(x.item)}</b><b>${money(x.cost)}</b></span><span class="c2"><span>${esc(t('c_' + x.category))}</span>${n(x.paid) >= n(x.cost) && n(x.cost) ? chip('good', t('paid_full')) : chip('warn', t('balance', money(n(x.cost) - n(x.paid))))}</span></button>`).join('') : (bk.length ? '' : empty(t('no_costs')));
+    h += lines.length ? lines.sort((a, b) => catIdx(a.category) - catIdx(b.category)).map(x => `<button class="card" data-act="form" data-f="line" data-id="${x.id}"><span class="c1"><b>${esc(x.item)}</b><b>${money(x.cost)}</b></span><span class="c2"><span>${esc(catName(x.category))}</span>${n(x.paid) >= n(x.cost) && n(x.cost) ? chip('good', t('paid_full')) : chip('warn', t('balance', money(n(x.cost) - n(x.paid))))}</span></button>`).join('') : (bk.length ? '' : empty(t('no_costs')));
     if (bk.length) h += `<p class="hint">+ ${bk.length} ${t('from_vendors')}: ${money(bk.reduce((a, x) => a + n(x.agreed), 0))}</p>`;
     return h;
   },
   bookings(e) {
-    const bk = of('bookings', e.id);
-    return addBtn('booking', t('book_vendor')) + (bk.length ? bk.sort((a, b) => CATS.indexOf(a.service) - CATS.indexOf(b.service)).map(b => {
-      const v = get('vendors', b.vendorId) || {}, bal = n(b.agreed) - n(b.paid);
-      return `<div class="cardwrap"><button class="card" data-act="form" data-f="booking" data-id="${b.id}"><span class="c1"><b>${esc(v.name || '—')}</b><b>${money(b.agreed)}</b></span><span class="c2"><span>${esc(t('c_' + b.service))}${v.phone ? ' · ' + esc(v.phone) : ''}</span>${bal > 0 ? chip('warn', t('balance', money(bal))) : chip('good', t('paid_full'))}</span>${b.notes ? `<span class="c3">${esc(b.notes)}</span>` : ''}</button>` +
-        (phone255(v.phone) ? `<div class="acts"><a class="btn sm" href="tel:${esc(v.phone.replace(/\s/g, ''))}">Call</a><a class="btn sm" href="${esc(waLink(v.phone, ''))}" target="_blank" rel="noopener">WhatsApp</a></div>` : '') + `</div>`;
-    }).join('') : empty(t('no_bookings')));
+    const bk = of('bookings', e.id), ag = bk.reduce((a, b) => a + n(b.agreed), 0), pd = bk.reduce((a, b) => a + n(b.paid), 0);
+    let h = bk.length ? `<section class="panel"><div class="ledger"><div><span>${t('b_committed')}</span><span>${money(ag)}</span></div><div><span>${t('b_paid')}</span><span>${money(pd)}</span></div><div class="tot"><span>${t('b_left')}</span><span>${money(ag - pd)}</span></div></div></section>` : '';
+    h += evCats(e).map((c, i) => {
+      const l = bk.filter(b => b.service === c);
+      return `<section class="panel svc" data-cat="${c}"><div class="row"><h3>${i + 1}. ${esc(catName(c))}</h3><button class="btn sm" data-act="form" data-f="booking" data-v="${c}">+ ${t('add')}</button></div>` +
+        (l.length ? l.map(b => { const o = get('vendors', b.vendorId) || {}, bal = n(b.agreed) - n(b.paid);
+          return prow(o, `data-act="form" data-f="booking" data-id="${b.id}"`, `<small>${esc([o.person, o.phone, o.area].filter(Boolean).join(' · '))}</small><small><span class="num">${money(b.agreed)}</span> ${bal > 0 ? chip('warn', t('balance', money(bal))) : chip('good', t('paid_full'))}</small>`); }).join('')
+          : `<div class="row"><p class="hint">${t('no_provider')}</p><button class="btn link" data-act="svc-del" data-v="${c}">${t('remove')}</button></div>`) + `</section>`;
+    }).join('');
+    return h + `<button class="btn dashed block" data-act="form" data-f="service" id="addSvc">+ ${t('add_service')}</button>`;
   },
   pledges(e, s) {
     const l = of('pledges', e.id).sort(byName), T = n(e.target);
@@ -264,13 +329,17 @@ const TAB = {
   }
 };
 function vVendors() {
-  const l = rows('vendors').sort((a, b) => CATS.indexOf(a.service) - CATS.indexOf(b.service) || byName(a, b));
-  return `<div class="row"><h2>${t('vendors_title')}</h2><button class="btn primary" id="addBtn" data-act="form" data-f="vendor">+ ${t('new_vendor')}</button></div><div class="list" id="list">` +
-    (l.length ? l.map(v => {
-      const evs = rows('bookings', b => b.vendorId === v.id).map(b => get('events', b.eventId)).filter(Boolean);
-      return `<div class="cardwrap"><button class="card" data-act="form" data-f="vendor" data-id="${v.id}"><span class="c1"><b>${esc(v.name)}</b>${chip('plain', t('c_' + v.service))}</span><span class="c2"><span>${esc([v.area, v.phone].filter(Boolean).join(' · ') || '—')}</span></span><span class="c3">${esc(evs.length ? t('booked_for', evs.map(evName).join(', ')) : t('not_booked'))}</span>${v.notes ? `<span class="c3">${esc(v.notes)}</span>` : ''}</button>` +
-        (phone255(v.phone) ? `<div class="acts"><a class="btn sm" href="tel:${esc(v.phone.replace(/\s/g, ''))}">Call</a><a class="btn sm" href="${esc(waLink(v.phone, ''))}" target="_blank" rel="noopener">WhatsApp</a></div>` : '') + `</div>`;
-    }).join('') : empty(t('no_vendors'))) + `</div>`;
+  const all = rows('vendors'), q = ui.vq.trim().toLowerCase(), hit = o => !q || [o.name, o.person, o.area, o.phone, catName(o.service)].join(' ').toLowerCase().includes(q);
+  if (!ui.openCats) ui.openCats = new Set(all.length ? [all.map(o => o.service).sort((a, b) => catIdx(a) - catIdx(b))[0]] : []);
+  let h = `<div class="row"><h2>${t('vendors_title')}</h2><button class="btn primary" id="addBtn" data-act="form" data-f="vendor">+ ${t('new_vendor')}</button></div>`;
+  h += all.length ? `<input class="search" id="vq" type="search" placeholder="${esc(t('search_vendor'))}" value="${esc(ui.vq)}" autocomplete="off">` : `<p class="hint">${t('no_vendors')}</p>`;
+  h += `<div class="list" id="list">` + catList().map(c => {
+    const l = all.filter(o => o.service === c && hit(o)).sort(byName); if (q && !l.length) return '';
+    const used = id => [...new Set(rows('bookings', b => b.vendorId === id).map(b => evName(get('events', b.eventId))).filter(Boolean))];
+    return `<details class="grp" data-cat="${c}"${q || ui.openCats.has(c) ? ' open' : ''}><summary><span class="gname">${esc(catName(c))}</span><span class="gcount">${l.length}</span><button class="ib" data-act="form" data-f="vendor" data-v="${c}" aria-label="${esc(t('new_vendor') + ': ' + catName(c))}">+</button></summary>` +
+      (l.length ? l.map(o => { const u = used(o.id); return prow(o, `data-act="form" data-f="vendor" data-id="${o.id}"`, (o.person ? `<small>${esc(o.person)}</small>` : '') + `<small>${esc([o.area, o.phone].filter(Boolean).join(' · ') || '—')}</small>` + (u.length ? `<small class="gold">${esc(t('booked_for', u.join(', ')))}</small>` : '')); }).join('') : `<p class="hint">${t('no_in_cat')}</p>`) + `</details>`;
+  }).join('') + `</div><button class="btn dashed block" data-act="form" data-f="newcat" id="newCat">+ ${t('new_cat')}</button>`;
+  return h;
 }
 let installEvt = null;
 function vMore() {
@@ -283,6 +352,140 @@ function vMore() {
     `<p class="hint">${t('phone_only')}</p><p class="hint">Eventers, ${t('version')} ${VERSION}</p><input type="file" id="restoreFile" accept="application/json,.json" hidden>`;
 }
 
+/* ---------- reports: one event, or a whole year. A report is a list of blocks drawn as a page and as a PDF. ---------- */
+const mm = x => Math.round(n(x)).toLocaleString('en-US');
+function eventDoc(e) {
+  const s = stats(e), B = [], tasks = of('tasks', e.id), bk = of('bookings', e.id), pl = of('pledges', e.id).sort(byName), gs = of('guests', e.id), items = of('items', e.id).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  let k = 0; const sec = x => B.push(['h', ++k + '. ' + x]);
+  B.push(['kpis', [[t('k_when'), e.date ? when(e.date) : t('no_date')], [t('k_tasks'), s.done + ' / ' + s.tasks], [t('b_paid'), money(s.paid), 1], [t('k_michango'), money(s.collected)]]]);
+  sec(t('rp_progress')); B.push(['p', t('tasks_done', s.done, s.tasks) + '.']);
+  const open = tasks.filter(x => !x.done).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  if (open.length) B.push(['table', [[t('rp_open'), 4], [t('due'), 1.6, 1], [t('who'), 1.6, 1]], open.map(x => [x.title, x.due ? nice(x.due) : '—', x.who || '—'])]);
+  sec(t('rp_services'));
+  if (bk.length) { const ag = bk.reduce((a, b) => a + n(b.agreed), 0), pd = bk.reduce((a, b) => a + n(b.paid), 0);
+    B.push(['table', [[t('service'), 2.2], [t('vendor'), 3.2], [t('agreed_s'), 1.4, 1], [t('b_paid'), 1.4, 1], [t('rp_bal'), 1.4, 1]],
+      bk.sort((a, b) => catIdx(a.service) - catIdx(b.service)).map(b => { const o = get('vendors', b.vendorId) || {}; return [catName(b.service), [o.name || '—', [o.person, o.phone, o.area].filter(Boolean).join(' · ')], mm(b.agreed), mm(b.paid), n(b.agreed) > n(b.paid) ? mm(n(b.agreed) - n(b.paid)) : '—']; }),
+      [t('total'), '', mm(ag), mm(pd), mm(ag - pd)]]); }
+  else B.push(['p', t('no_bookings'), 1]);
+  sec(t('tab_budget'));
+  { const cat = {}; of('lines', e.id).forEach(x => { const c = cat[x.category] = cat[x.category] || [0, 0]; c[0] += n(x.cost); c[1] += n(x.paid); }); bk.forEach(x => { const c = cat[x.service] = cat[x.service] || [0, 0]; c[0] += n(x.agreed); c[1] += n(x.paid); });
+    const cs = Object.keys(cat).sort((a, b) => catIdx(a) - catIdx(b)), Bd = n(e.budget);
+    if (Bd) B.push(['p', t('b_budget') + ' ' + money(Bd) + '. ' + (s.committed > Bd ? t('b_over', money(s.committed - Bd)) : t('b_under', money(Bd - s.committed))) + '.']);
+    if (cs.length) B.push(['table', [[t('category'), 3], [t('agreed_s'), 1.5, 1], [t('b_paid'), 1.5, 1], [t('rp_bal'), 1.5, 1]], cs.map(c => [catName(c), mm(cat[c][0]), mm(cat[c][1]), mm(cat[c][0] - cat[c][1])]), [t('total'), mm(s.committed), mm(s.paid), mm(s.committed - s.paid)]]);
+    else B.push(['p', t('no_costs'), 1]); }
+  if (pl.length || n(e.target)) { sec(t('k_michango')); B.push(['p', t('rp_mich', money(e.target), money(s.pledged), money(s.collected), money(s.pledged - s.collected))]);
+    if (pl.length) B.push(['table', [[t('name'), 3], [t('m_pledged'), 1.5, 1], [t('b_paid'), 1.5, 1], [t('rp_bal'), 1.5, 1]], pl.map(p => [p.name, mm(p.pledged), mm(paidOf(p)), n(p.pledged) > paidOf(p) ? mm(n(p.pledged) - paidOf(p)) : '—']), [t('total'), mm(s.pledged), mm(s.collected), mm(s.pledged - s.collected)]]); }
+  sec(t('tab_guests')); { const c = r => gs.filter(g => (g.rsvp || '') === r).reduce((a, g) => a + (n(g.seats) || 1), 0); B.push(['p', t('rp_guests', s.invited, s.yes, c('maybe'), c('no'), s.arrived) + (n(e.expected) ? ' · ' + t('expected') + ' ' + n(e.expected) : '')]); }
+  if (items.length) { sec(t('tab_items')); B.push(['table', [[t('time'), 1], [t('what'), 4], [t('who'), 2]], items.map(x => [x.time || '—', x.title, x.who || '—'])]); }
+  if (e.notes) { sec(t('notes')); B.push(['p', e.notes]); }
+  return { title: e.name, sub: [t('t_' + e.type), e.date ? nice(e.date) + (e.time ? ', ' + e.time : '') : '', e.venue, e.host].filter(Boolean).join(' · '), blocks: B, foot: t('rp_foot', nice(today())) };
+}
+function yearDoc(y) {
+  const evs = rows('events', e => !isPlan(e) && (e.date || '').slice(0, 4) === y).sort(byDate), S = evs.map(e => [e, stats(e)]), sum = k => S.reduce((a, x) => a + x[1][k], 0), B = [];
+  let k = 0; const sec = x => B.push(['h', ++k + '. ' + x]);
+  B.push(['kpis', [[t('rp_events'), String(evs.length)], [t('rp_done'), String(evs.filter(isPast).length)], [t('b_committed'), money(sum('committed'))], [t('b_paid'), money(sum('paid')), 1]]]);
+  sec(t('rp_events'));
+  if (evs.length) B.push(['table', [[t('rp_event_k'), 3.4], [t('date'), 1.4, 1], [t('agreed_s'), 1.4, 1], [t('b_paid'), 1.4, 1], [t('k_michango'), 1.4, 1], [t('tab_guests'), 0.9, 1]],
+    S.map(([e, s]) => [[e.name, [t('t_' + e.type), e.venue].filter(Boolean).join(' · ')], e.date ? nice(e.date) : '—', mm(s.committed), mm(s.paid), mm(s.collected), String(s.yes || s.invited)]),
+    [t('total'), '', mm(sum('committed')), mm(sum('paid')), mm(sum('collected')), String(S.reduce((a, x) => a + (x[1].yes || x[1].invited), 0))]]);
+  else B.push(['p', t('rp_none'), 1]);
+  if (evs.length) { sec(t('rp_by_type')); const ty = {}; S.forEach(([e, s]) => { const o = ty[e.type] = ty[e.type] || [0, 0]; o[0]++; o[1] += s.committed; });
+    B.push(['table', [[t('type'), 3], [t('rp_count'), 1, 1], [t('agreed_s'), 2, 1]], Object.entries(ty).sort((a, b) => b[1][1] - a[1][1]).map(([k2, o]) => [t('t_' + k2), String(o[0]), mm(o[1])])]);
+    const vp = {}; evs.forEach(e => of('bookings', e.id).forEach(b => { const o = vp[b.vendorId] = vp[b.vendorId] || { ev: new Set(), paid: 0, svc: b.service }; o.ev.add(e.id); o.paid += n(b.paid); }));
+    const vl = Object.entries(vp).filter(([id]) => get('vendors', id)).sort((a, b) => b[1].paid - a[1].paid).slice(0, 12);
+    if (vl.length) { sec(t('rp_services')); B.push(['table', [[t('vendor'), 3.4], [t('rp_count'), 1, 1], [t('b_paid'), 1.6, 1]], vl.map(([id, o]) => [[get('vendors', id).name, catName(o.svc)], String(o.ev.size), mm(o.paid)])]); } }
+  const fut = rows('events', e => isPlan(e) || (e.date && e.date >= today())).sort(byDate);
+  if (fut.length) { sec(t('rp_future')); B.push(['table', [[t('name'), 3], [t('date'), 1.4, 1], [t('rp_kind'), 2.2, 1]], fut.map(e => [[e.name, t('t_' + e.type)], e.date ? nice(e.date) : '—', isPlan(e) ? t('rp_plan_k', e.date ? nice(addDays(e.date, -PLAN_DAYS)) : '—') : t('rp_event_k')])]); }
+  return { title: t('rp_year_title', y), sub: t('rp_year_sub', evs.length), blocks: B, foot: t('rp_foot', nice(today())) };
+}
+const yearText = y => { const d = yearDoc(y); return 'Eventers – ' + d.title + '\n' + d.blocks[0][1].map(x => x[0] + ': ' + x[1]).join('\n'); };
+function docHtml(d) {
+  const al = (c, i) => c[i] && c[i][2] ? ' class="r"' : '';
+  return `<header class="rep-head"><img src="icons/crest.png" alt=""><div><p class="brand">Eventers</p><p class="tag">${esc(I18N.en.app_sub)}</p></div></header><div class="rep-title"><h1>${esc(d.title)}</h1><p>${esc(d.sub)}</p></div>` +
+    d.blocks.map(b => b[0] === 'kpis' ? `<div class="rep-kpis">${b[1].map(x => `<div${x[2] ? ' class="hero"' : ''}><span>${esc(x[0])}</span><b>${esc(x[1])}</b></div>`).join('')}</div>`
+      : b[0] === 'h' ? `<h3>${esc(b[1])}</h3>` : b[0] === 'p' ? `<p${b[2] ? ' class="muted"' : ''}>${esc(b[1])}</p>`
+      : `<div class="tw"><table><tr>${b[1].map((c, i) => `<th${al(b[1], i)}>${esc(c[0])}</th>`).join('')}</tr>${b[2].map(r => `<tr>${r.map((c, i) => `<td${al(b[1], i)}>${Array.isArray(c) ? `<b>${esc(c[0])}</b>${c[1] ? `<br><small>${esc(c[1])}</small>` : ''}` : esc(c)}</td>`).join('')}</tr>`).join('')}${b[3] ? `<tr class="tot">${b[3].map((c, i) => `<td${al(b[1], i)}>${esc(c)}</td>`).join('')}</tr>` : ''}</table></div>`).join('') +
+    `<footer>${esc(d.foot)}</footer>`;
+}
+function vReports() {
+  const evs = rows('events', e => !isPlan(e)).sort(byDate); let h = `<h2>${t('reports')}</h2>` + seg('repSeg', 'rtab', [['event', t('rep_event')], ['year', t('rep_year')]], ui.rtab), d;
+  if (ui.rtab === 'event') {
+    if (!evs.length) return h + empty(t('no_events'));
+    if (!get('events', ui.rid) || isPlan(get('events', ui.rid))) ui.rid = (evs.find(e => !isPast(e)) || evs[evs.length - 1]).id;
+    h += sel('r-ev', t('rep_pick'), evs.map(e => [e.id, e.name + (e.date ? ' · ' + nice(e.date) : '')]), ui.rid); d = eventDoc(get('events', ui.rid));
+  } else {
+    const ys = [...new Set(rows('events').map(e => (e.date || today()).slice(0, 4)).concat([today().slice(0, 4)]))].sort().reverse(); if (!ys.includes(ui.ry)) ui.ry = ys[0];
+    h += sel('r-year', t('rep_year_pick'), ys.map(y => [y, y]), ui.ry); d = yearDoc(ui.ry);
+  }
+  return h + `<div class="actions"><button class="btn primary" data-act="rep-pdf" id="repPdf">${t('rep_pdf')}</button><button class="btn" data-act="rep-share">${t('share')}</button></div><article class="rep" id="report">${docHtml(d)}</article>`;
+}
+/* The PDF is written by hand: A4, built-in Helvetica and Times fonts, the crest as a JPEG. No library, works offline. */
+async function crestJpeg() {
+  try { const img = new Image(); img.src = 'icons/crest.png'; await img.decode(); const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'); x.fillStyle = '#0A111B'; x.fillRect(0, 0, 160, 160); x.drawImage(img, 0, 0, 160, 160); return atob(c.toDataURL('image/jpeg', 0.9).split(',')[1]); } catch (e) { return ''; }
+}
+async function docPdf(d) {
+  const W = 595.28, H = 841.89, M = 40, CW = W - 2 * M, jpg = await crestJpeg(), cv = document.createElement('canvas').getContext('2d');
+  const FN = { F1: 'px Helvetica, Arial, sans-serif', F2: 'px Helvetica, Arial, sans-serif', F3: 'px "Times New Roman", Times, serif' };
+  const wid = (str, sz, F) => { cv.font = (F === 'F1' ? '' : 'bold ') + sz + FN[F || 'F1']; return cv.measureText(String(str)).width; };
+  const WIN = { '–': 150, '—': 151, '’': 146, '‘': 145, '“': 147, '”': 148, '·': 183, '…': 133, '×': 215, '‹': 139, '›': 155, '✓': 42 };
+  const enc = str => [...String(str)].map(ch => { const c = ch.charCodeAt(0), x = String.fromCharCode(WIN[ch] || (c < 256 ? c : 63)); return '()\\'.includes(x) ? '\\' + x : x; }).join('');
+  const col = h => h.match(/\w\w/g).map(x => (parseInt(x, 16) / 255).toFixed(3)).join(' '), f = x => (+x).toFixed(2);
+  const pages = []; let ops, y;
+  const page = () => { ops = []; pages.push(ops); y = M; }, need = h => { if (y + h > H - M - 16) page(); };
+  const rect = (x, yy, w, h, c, st) => ops.push(st ? `${col(c)} RG 0.8 w ${f(x)} ${f(H - yy - h)} ${f(w)} ${f(h)} re S` : `${col(c)} rg ${f(x)} ${f(H - yy - h)} ${f(w)} ${f(h)} re f`);
+  const line = (x1, y1, x2, y2, c, lw) => ops.push(`${col(c)} RG ${lw || 0.5} w ${f(x1)} ${f(H - y1)} m ${f(x2)} ${f(H - y2)} l S`);
+  const text = (str, x, yy, sz, c, F, al, sp) => { str = String(str); F = F || 'F1'; const w = wid(str, sz, F) + (sp || 0) * str.length; if (al === 'r') x -= w; else if (al === 'c') x -= w / 2; ops.push(`BT /${F} ${sz} Tf ${sp || 0} Tc ${col(c)} rg ${f(x)} ${f(H - yy)} Td (${enc(str)}) Tj ET`); };
+  const fit = (str, sz, F, max) => { str = String(str); if (wid(str, sz, F) <= max) return str; while (str.length > 1 && wid(str + '…', sz, F) > max) str = str.slice(0, -1); return str + '…'; };
+  const wrap = (str, sz, F, max) => { const out = []; String(str).split('\n').forEach(par => { let l = ''; par.split(/\s+/).forEach(w => { const tt = l ? l + ' ' + w : w; if (l && wid(tt, sz, F) > max) { out.push(l); l = w; } else l = tt; }); out.push(l); }); return out; };
+  const NAVY = '0A111B', GOLD = 'D4AF37', INK = '0B1526', MUTED = '5E6676', RULE = 'E6DFCD', DEEP = '8A6B14';
+  page();
+  rect(0, 0, W, 78, NAVY); rect(0, 78, W, 3, GOLD);
+  if (jpg) ops.push(`q 54 0 0 54 ${M} ${f(H - 12 - 54)} cm /Im1 Do Q`);
+  const hx = jpg ? M + 66 : M; text('EVENTERS', hx, 42, 22, GOLD, 'F3', '', 3); text('HOME OF EXCLUSIVE EVENTS', hx, 58, 7.5, 'B9A867', 'F2', '', 1.2);
+  y = 104; wrap(d.title, 20, 'F3', CW).forEach(l => { text(l, M, y + 18, 20, INK, 'F3'); y += 24; }); wrap(d.sub, 9, 'F1', CW).forEach(l => { text(l, M, y + 12, 9, MUTED); y += 13; }); y += 14;
+  const table = (cols, rws, foot) => {
+    const tot = cols.reduce((a, c) => a + c[1], 0), ws = cols.map(c => c[1] / tot * CW), xs = ws.map((_, i) => M + ws.slice(0, i).reduce((a, b) => a + b, 0));
+    const cell = (v, i, yy, sz, F, c) => { const r = cols[i][2]; text(fit(v, sz, F, ws[i] - 6), r ? xs[i] + ws[i] - 2 : xs[i] + 2, yy, sz, c || INK, F, r ? 'r' : ''); };
+    const hdr = () => { cols.forEach((c, i) => cell(c[0].toUpperCase(), i, y + 9, 7, 'F2', MUTED)); line(M, y + 14, M + CW, y + 14, RULE); y += 16; };
+    need(40); hdr();
+    rws.forEach(r => { const two = r.some(c => Array.isArray(c) && c[1]), h = two ? 25 : 17; if (y + h > H - M - 16) { page(); hdr(); }
+      r.forEach((c, i) => { if (Array.isArray(c)) { if (c[1]) { cell(c[0], i, y + 11, 8.5, 'F2'); cell(c[1], i, y + 21, 7, 'F1', MUTED); } else cell(c[0], i, y + 12, 8.5, 'F2'); } else cell(c, i, y + (two ? 15 : 12), 8.5); });
+      line(M, y + h, M + CW, y + h, RULE); y += h; });
+    if (foot) { need(18); line(M, y, M + CW, y, INK, 1.1); foot.forEach((c, i) => cell(c, i, y + 12, 8.5, 'F2')); y += 18; }
+    y += 6;
+  };
+  d.blocks.forEach((b, bi) => {
+    if (b[0] === 'kpis') { const kw = (CW - 24) / 4; need(56); b[1].forEach((k, i) => { const x = M + i * (kw + 8); if (k[2]) rect(x, y, kw, 48, NAVY); else rect(x, y, kw, 48, RULE, 1);
+      text(fit(k[0].toUpperCase(), 7, 'F2', kw - 14), x + 7, y + 16, 7, k[2] ? 'B9A867' : MUTED, 'F2'); text(fit(k[1], 12, 'F2', kw - 14), x + 7, y + 36, 12, k[2] ? GOLD : INK, 'F2'); }); y += 62; }
+    else if (b[0] === 'h') { const nx = d.blocks[bi + 1]; need(nx && nx[0] === 'table' ? 90 : 54); y += 4; text(b[1], M, y + 13, 13, DEEP, 'F3'); line(M, y + 18, M + CW, y + 18, GOLD, 1); y += 28; }
+    else if (b[0] === 'p') { wrap(b[1], 9.5, 'F1', CW).forEach(l => { need(14); text(l, M, y + 10, 9.5, b[2] ? MUTED : INK); y += 14; }); y += 6; }
+    else table(b[1], b[2], b[3]);
+  });
+  need(24); y += 6; line(M, y, M + CW, y, RULE); text(d.foot, M, y + 12, 7.5, MUTED);
+  pages.forEach((o, i) => { ops = o; text('Eventers · ' + d.title, M, H - 22, 7, MUTED); text(t('rp_page', i + 1, pages.length), W - M, H - 22, 7, MUTED, 'F1', 'r'); });
+  const objs = [], add = o => objs.push(o);
+  add('<< /Type /Catalog /Pages 2 0 R >>'); add('');
+  ['Helvetica', 'Helvetica-Bold', 'Times-Bold'].forEach(b => add(`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`));
+  const im = jpg ? add(`<< /Type /XObject /Subtype /Image /Width 160 /Height 160 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n${jpg}\nendstream`) : 0;
+  const kids = pages.map(o => { const c = o.join('\n'), ci = add(`<< /Length ${c.length} >>\nstream\n${c}\nendstream`); return add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >>${im ? ` /XObject << /Im1 ${im} 0 R >>` : ''} >> /Contents ${ci} 0 R >>`); });
+  objs[1] = `<< /Type /Pages /Kids [${kids.map(k => k + ' 0 R').join(' ')}] /Count ${kids.length} >>`;
+  const info = add(`<< /Title (${enc('Eventers - ' + d.title)}) /Producer (Eventers) >>`);
+  let out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offs = [];
+  objs.forEach((o, i) => { offs.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  const xr = out.length;
+  out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+  const bytes = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+  return new Blob([bytes], { type: 'application/pdf' });
+}
+async function saveDocPdf(btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = t('rep_busy');
+  try {
+    const d = ui.rtab === 'event' ? eventDoc(get('events', ui.rid)) : yearDoc(ui.ry), blob = await docPdf(d), name = ('Eventers ' + d.title).replace(/[^\w-]+/g, '-').replace(/-+$/, '') + '.pdf', file = new File([blob], name, { type: 'application/pdf' });
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); toast(t('rep_saved'));
+  } finally { btn.disabled = false; btn.textContent = old; }
+}
+
 /* ---------- forms ---------- */
 const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
 const fld = (id, label, inner) => `<div class="f"><label for="${id}">${label}</label>${inner}</div>`;
@@ -291,25 +494,28 @@ const num = (id, label, val) => inp(id, label, val || val === 0 ? val : '', 'typ
 const area = (id, label, val, ph) => fld(id, label, `<textarea id="${id}" placeholder="${esc(ph || '')}">${esc(val || '')}</textarea>`);
 const sel = (id, label, opts, val) => fld(id, label, `<select id="${id}">${opts.map(o => `<option value="${esc(o[0])}"${String(o[0]) === String(val == null ? '' : val) ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`);
 const two = (a, b) => `<div class="f2">${a}${b}</div>`;
-const catOpts = () => CATS.map(c => [c, t('c_' + c)]);
+const catOpts = () => catList().map(c => [c, catName(c)]);
 const fail = m => { $('#fmsg').textContent = m; return false; };
 const tel = (id, val) => inp(id, t('phone'), val, 'inputmode="tel" placeholder="07…"');
 const FORMS = {
   event: {
-    tb: 'events', title: id => id ? t('edit_event') : t('new_event'),
+    tb: 'events', title: id => { const pl = id ? isPlan(get('events', id)) : ui.form.v === 'plan'; return id ? (pl ? t('edit_plan') : t('edit_event')) : (pl ? t('new_plan') : t('new_event')); },
     html(id) {
-      const x = id ? get('events', id) : { type: 'wedding' };
-      return inp('e-name', t('ev_name'), x.name, `placeholder="${esc(t('ev_name_ph'))}"`) + sel('e-type', t('type'), TYPES.map(k => [k, t('t_' + k)]), x.type) +
+      const x = id ? get('events', id) : { type: 'wedding', kind: ui.form.v === 'plan' ? 'plan' : 'event' }, pl = isPlan(x);
+      return (pl ? `<p class="hint">${t('plan_hint')}</p>` : '') + inp('e-name', t('ev_name'), x.name, `placeholder="${esc(t('ev_name_ph'))}"`) + sel('e-type', t('type'), TYPES.map(k => [k, t('t_' + k)]), x.type) +
         two(inp('e-date', t('date'), x.date, 'type="date"'), inp('e-time', t('time'), x.time, 'type="time"')) + inp('e-venue', t('venue'), x.venue) +
         two(inp('e-host', t('host'), x.host), tel('e-phone', x.phone)) + two(num('e-budget', t('budget_t'), x.budget), num('e-target', t('target'), x.target)) +
         num('e-expected', t('expected'), x.expected) + area('e-notes', t('notes'), x.notes) +
-        (id ? '' : `<label class="check"><input type="checkbox" id="e-tpl" checked><span>${t('add_tpl')}</span></label>`);
+        (id || pl ? '' : `<label class="check"><input type="checkbox" id="e-tpl" checked><span>${t('add_tpl')}</span></label>`);
     },
     save(id) {
       const name = v('e-name').trim(); if (!name) return fail(t('need_name'));
-      const old = id ? get('events', id) : null;
-      const eid = put('events', Object.assign({}, old || {}, { name, type: v('e-type'), date: v('e-date'), time: v('e-time'), venue: v('e-venue').trim(), host: v('e-host').trim(), phone: v('e-phone').trim(), budget: n(v('e-budget')), target: n(v('e-target')), expected: n(v('e-expected')), notes: v('e-notes').trim() }));
-      if (!id && $('#e-tpl').checked) (TPL[v('e-type')] || []).forEach(([d, en, sw]) => { const due = v('e-date') ? addDays(v('e-date'), d) : ''; put('tasks', { eventId: eid, title: P.lang === 'sw' ? sw : en, due: due && due < today() ? today() : due, who: '', done: false }); });
+      const old = id ? get('events', id) : null, kind = old ? old.kind || 'event' : ui.form.v === 'plan' ? 'plan' : 'event';
+      const eid = put('events', Object.assign({ services: DEF_SVC.slice() }, old || {}, { kind, name, type: v('e-type'), date: v('e-date'), time: v('e-time'), venue: v('e-venue').trim(), host: v('e-host').trim(), phone: v('e-phone').trim(), budget: n(v('e-budget')), target: n(v('e-target')), expected: n(v('e-expected')), notes: v('e-notes').trim() }));
+      if (old && old.date !== v('e-date')) DB.events[eid].notified = 0;
+      if (!id && kind === 'event' && $('#e-tpl').checked) addTemplate(DB.events[eid]);
+      if (kind === 'plan' && 'Notification' in window && Notification.permission === 'default') try { Notification.requestPermission().then(checkPlans); } catch (x) {}
+      persist(); checkPlans();
       if (!id) return () => go('event', eid);
       return true;
     }
@@ -326,23 +532,52 @@ const FORMS = {
   },
   vendor: {
     tb: 'vendors', title: id => id ? t('vendor') : t('new_vendor'),
-    html(id) { const x = id ? get('vendors', id) : { service: 'venue' }; return inp('v-name', t('name'), x.name) + sel('v-service', t('service'), catOpts(), x.service) + tel('v-phone', x.phone) + inp('v-area', t('area'), x.area) + area('v-notes', t('notes'), x.notes); },
-    save(id) { const name = v('v-name').trim(); if (!name) return fail(t('need_name')); put('vendors', Object.assign({}, id ? get('vendors', id) : {}, { name, service: v('v-service'), phone: v('v-phone').trim(), area: v('v-area').trim(), notes: v('v-notes').trim() })); return true; },
+    html(id) {
+      const x = id ? get('vendors', id) : { service: ui.form.v || 'venue' }; ui.pendingLogo = x.logo || '';
+      const used = id ? [...new Set(rows('bookings', b => b.vendorId === id).map(b => evName(get('events', b.eventId))).filter(Boolean))] : [];
+      return `<div class="logorow"><span id="v-logo-prev">${avatar(x)}</span><div class="actions"><label class="btn sm">${t('logo_add')}<input type="file" id="v-logo" accept="image/*" hidden></label><button type="button" class="btn sm link" data-act="logo-clear">${t('logo_remove')}</button></div></div>` +
+        inp('v-name', t('brand'), x.name) + inp('v-person', t('person'), x.person) + two(tel('v-phone', x.phone), inp('v-area', t('area'), x.area)) + catSel('v-service', x.service) + area('v-notes', t('notes'), x.notes) +
+        (used.length ? `<p class="hint">${esc(t('booked_for', used.join(', ')))}</p>` : '');
+    },
+    init() {
+      catInit('v-service');
+      $('#v-logo').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; try { ui.pendingLogo = await shrinkImg(f, 160); $('#v-logo-prev').innerHTML = avatar({ logo: ui.pendingLogo }); } catch (x) { toast(t('bad_image')); } });
+    },
+    save(id) {
+      const name = v('v-name').trim(); if (!name) return fail(t('need_name'));
+      const svc = catVal('v-service'); if (svc === false) return fail(t('need_cat'));
+      put('vendors', Object.assign({}, id ? get('vendors', id) : {}, { name, person: v('v-person').trim(), service: svc, phone: v('v-phone').trim(), area: v('v-area').trim(), notes: v('v-notes').trim(), logo: ui.pendingLogo || '' }));
+      if (ui.openCats) ui.openCats.add(svc); return true;
+    },
     canDelete: id => rows('bookings', b => b.vendorId === id).length ? t('vendor_used') : ''
   },
   booking: {
     tb: 'bookings', title: () => t('book_vendor'),
     html(id) {
-      const x = id ? get('bookings', id) : { service: 'venue' };
-      return sel('b-vendor', t('vendor_pick'), [['__new', t('new_vendor_opt')]].concat(rows('vendors').sort(byName).map(o => [o.id, o.name + ' (' + t('c_' + o.service) + ')'])), x.vendorId || (rows('vendors').length ? rows('vendors').sort(byName)[0].id : '__new')) +
-        `<div class="newbox" id="b-new">${inp('b-vname', t('name'), '')}${tel('b-vphone', '')}</div>` + sel('b-service', t('service'), catOpts(), x.service) + two(num('b-agreed', t('agreed'), x.agreed), num('b-paid', t('paid'), x.paid)) + area('b-notes', t('notes'), x.notes);
+      const x = id ? get('bookings', id) : { service: ui.form.v || 'venue' }, vs = rows('vendors').sort((a, b) => (b.service === x.service) - (a.service === x.service) || byName(a, b));
+      const pick = x.vendorId || (vs[0] && vs[0].service === x.service ? vs[0].id : '__new');
+      return catSel('b-service', x.service) + sel('b-vendor', t('vendor_pick'), vs.map(o => [o.id, o.name + (o.service !== x.service ? ' (' + catName(o.service) + ')' : '')]).concat([['__new', t('new_vendor_opt')]]), pick) +
+        `<div class="newbox" id="b-new">${inp('b-vname', t('brand'), '')}${inp('b-vperson', t('person'), '')}${two(tel('b-vphone', ''), inp('b-varea', t('area'), ''))}</div>` +
+        two(num('b-agreed', t('agreed'), x.agreed), num('b-paid', t('paid'), x.paid)) + area('b-notes', t('notes'), x.notes);
     },
-    init() { const f = () => { $('#b-new').hidden = v('b-vendor') !== '__new'; const o = get('vendors', v('b-vendor')); if (o && !ui.form.id) $('#b-service').value = o.service; }; $('#b-vendor').addEventListener('change', f); f(); },
+    init() { catInit('b-service'); const f = () => { $('#b-new').hidden = v('b-vendor') !== '__new'; }; $('#b-vendor').addEventListener('change', f); f(); },
     save(id) {
+      const svc = catVal('b-service'); if (svc === false) return fail(t('need_cat'));
       let vid = v('b-vendor');
-      if (vid === '__new') { const name = v('b-vname').trim(); if (!name) return fail(t('need_name')); vid = put('vendors', { name, service: v('b-service'), phone: v('b-vphone').trim(), area: '', notes: '' }); }
-      put('bookings', Object.assign({}, id ? get('bookings', id) : { eventId: ui.eid }, { vendorId: vid, service: v('b-service'), agreed: n(v('b-agreed')), paid: n(v('b-paid')), notes: v('b-notes').trim() })); return true;
+      if (vid === '__new') { const name = v('b-vname').trim(); if (!name) return fail(t('need_name')); vid = put('vendors', { name, person: v('b-vperson').trim(), service: svc, phone: v('b-vphone').trim(), area: v('b-varea').trim(), notes: '', logo: '' }); }
+      put('bookings', Object.assign({}, id ? get('bookings', id) : { eventId: ui.eid }, { vendorId: vid, service: svc, agreed: n(v('b-agreed')), paid: n(v('b-paid')), notes: v('b-notes').trim() })); return true;
     }
+  },
+  service: {
+    title: () => t('add_service'),
+    html() { const e = get('events', ui.eid), have = evCats(e); return catSel('s-cat', catList().find(c => !have.includes(c)) || '__new'); },
+    init() { catInit('s-cat'); },
+    save() { const c = catVal('s-cat'); if (c === false) return fail(t('need_cat')); const e = get('events', ui.eid); put('events', Object.assign({}, e, { services: [...new Set(evCats(e).concat([c]))] })); return true; }
+  },
+  newcat: {
+    title: () => t('new_cat'),
+    html() { return inp('n-name', t('cat_name'), '', `placeholder="${esc(t('cat_ph'))}"`); },
+    save() { const name = v('n-name').trim(); if (!name) return fail(t('need_cat')); const ex = rows('cats').find(c => c.name.toLowerCase() === name.toLowerCase()); const id = ex ? ex.id : put('cats', { name }); if (ui.openCats) ui.openCats.add(id); return true; }
   },
   pledge: {
     tb: 'pledges', title: () => t('pledge'),
@@ -381,10 +616,11 @@ const FORMS = {
   },
   calendar: {
     custom: true, title: () => t('calendar'),
-    html(id) { const e = get('events', id); return `<div class="actions" style="flex-direction:column"><a class="btn big" href="${esc(gcal(e))}" target="_blank" rel="noopener">${t('g_cal')}</a><button class="btn big" type="button" data-act="ics" data-id="${id}">${t('ics')}</button><button class="btn" type="button" data-act="close">${t('close')}</button></div>`; },
+    html(id) { const e0 = get('events', id), e = isPlan(e0) ? planRem(e0) : e0; return (isPlan(e0) ? `<p class="hint">${esc(t('remind_on', nice(e.date)))}</p>` : '') + `<div class="actions" style="flex-direction:column"><a class="btn big" href="${esc(gcal(e))}" target="_blank" rel="noopener">${t('g_cal')}</a><button class="btn big" type="button" data-act="ics" data-id="${id}">${t('ics')}</button><button class="btn" type="button" data-act="close">${t('close')}</button></div>`; },
     save: () => true
   }
 };
+function addTemplate(e) { (TPL[e.type] || []).forEach(([d, en, sw]) => { const due = e.date ? addDays(e.date, d) : ''; put('tasks', { eventId: e.id, title: P.lang === 'sw' ? sw : en, due: due && due < today() ? today() : due, who: '', done: false }); }); }
 function openForm(f, id, extra) {
   const F = FORMS[f]; if (!F) return;
   ui.form = Object.assign({ f, id: id || '' }, extra || {});
@@ -436,9 +672,16 @@ const ACT = {
     if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = t('confirm_delete'); return; }
     remove(F.tb, f.id); closeForm(); toast(t('deleted')); renderAll();
   },
+  promote: () => { const e = get('events', ui.eid); put('events', Object.assign({}, e, { kind: 'event' })); if (!of('tasks', e.id).length) addTemplate(DB.events[e.id]); toast(t('promoted')); renderAll(); },
+  'ev-report': () => { ui.rtab = 'event'; ui.rid = ui.eid; go('reports'); },
+  'svc-del': b => { const e = get('events', ui.eid); put('events', Object.assign({}, e, { services: evCats(e).filter(c => c !== b.dataset.v) })); render(); },
+  'logo-clear': () => { ui.pendingLogo = ''; $('#v-logo-prev').innerHTML = avatar({ name: v('v-name') }); },
+  rtab: b => { ui.rtab = b.dataset.v; render(); },
+  'rep-pdf': b => saveDocPdf(b),
+  'rep-share': () => shareText(ui.rtab === 'event' ? summaryText(get('events', ui.rid)) : yearText(ui.ry)),
   toggle: b => { const x = get('tasks', b.dataset.id); put('tasks', Object.assign({}, x, { done: b.checked })); render(); },
-  checkin: b => { const g = get('guests', b.dataset.id); put('guests', Object.assign({}, g, { arrived: !g.arrived })); if (!g.arrived) toast('✓ ' + g.name); if (ui.q) { ui.q = ''; ui.focusQ = true; } render(); },
-  ics: b => { const e = get('events', b.dataset.id); download((e.name || 'event').replace(/[^\w]+/g, '-') + '.ics', 'text/calendar', icsFile(e)); },
+  checkin: b => { const g = get('guests', b.dataset.id); put('guests', Object.assign({}, g, { arrived: !g.arrived })); if (!g.arrived) toast('✓ ' + g.name); if (ui.q) { ui.q = ''; ui.focusQ = 'gq'; } render(); },
+  ics: b => { const e0 = get('events', b.dataset.id), e = isPlan(e0) ? planRem(e0) : e0; download((e.name || 'event').replace(/[^\w]+/g, '-') + '.ics', 'text/calendar', icsFile(e)); },
   'share-sum': () => shareText(summaryText(get('events', ui.eid))),
   'share-prog': () => { const e = get('events', ui.eid); shareText(e.name + (e.date ? ' – ' + nice(e.date) : '') + '\n' + t('tab_items') + '\n\n' + of('items', e.id).sort((a, b) => (a.time || '99').localeCompare(b.time || '99')).map(x => (x.time || '—') + '  ' + x.title + (x.who ? ' (' + x.who + ')' : '')).join('\n')); },
   'share-pledges': () => { const e = get('events', ui.eid), s = stats(e); shareText(e.name + ' – ' + t('k_michango') + '\n' + t('collected_of', money(s.collected), money(s.pledged)) + '\n\n' + of('pledges', e.id).sort(byName).map((p, i) => (i + 1) + '. ' + p.name + ' – ' + money(p.pledged) + ' / ' + money(paidOf(p)) + (paidOf(p) >= n(p.pledged) && n(p.pledged) ? ' ✓' : '')).join('\n')); },
@@ -456,8 +699,11 @@ document.addEventListener('click', e => {
   a(b);
 });
 $('#scrim').addEventListener('click', closeForm);
-document.addEventListener('input', e => { if (e.target.id === 'gq') { ui.q = e.target.value; ui.focusQ = true; render(); } });
+document.addEventListener('input', e => { const id = e.target.id; if (id === 'gq') ui.q = e.target.value; else if (id === 'vq') ui.vq = e.target.value; else return; ui.focusQ = id; render(); });
+document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.grp') && ui.openCats) d.open ? ui.openCats.add(d.dataset.cat) : ui.openCats.delete(d.dataset.cat); }, true);
 document.addEventListener('change', e => {
+  if (e.target.id === 'r-ev') { ui.rid = e.target.value; return render(); }
+  if (e.target.id === 'r-year') { ui.ry = e.target.value; return render(); }
   if (e.target.id !== 'restoreFile' || !e.target.files[0]) return;
   e.target.files[0].text().then(txt => {
     let d; try { d = JSON.parse(txt); } catch (x) { d = null; }
@@ -474,4 +720,6 @@ if (!localStorage.getItem(PKEY)) P.lang = /^sw/i.test(navigator.language || '') 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 renderAll();
+checkPlans();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkPlans(); });
 window.__sherehe = { DB, P, ui };
