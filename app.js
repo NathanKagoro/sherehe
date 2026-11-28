@@ -1,6 +1,6 @@
 /* Eventers (Sherehe) – offline event planner. Everything is kept on this phone (localStorage); use More › Backup to save a copy. */
 'use strict';
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 const KEY = 'sherehe:data', PKEY = 'sherehe:prefs';
 const TABLES = ['events', 'tasks', 'lines', 'vendors', 'bookings', 'pledges', 'guests', 'items', 'cats'];
 const TYPES = ['wedding', 'sendoff', 'kitchen', 'birthday', 'corporate', 'trip', 'other'];
@@ -31,7 +31,7 @@ const I18N = {
     today: 'Today', tomorrow: 'Tomorrow', in_days: n => 'In ' + n + ' days', days_ago: n => n + ' days ago', no_date: 'No date yet',
     tasks_done: (a, b) => a + ' of ' + b + ' tasks done', collected_of: (a, b) => a + ' of ' + b + ' collected',
     edit: 'Edit', edit_event: 'Edit event', save: 'Save', cancel: 'Cancel', delete: 'Delete', confirm_delete: 'Tap again to delete', close: 'Close', saved: 'Saved', deleted: 'Deleted', back: '‹ All events',
-    name: 'Name', ev_name: 'Event name', ev_name_ph: 'e.g. Wedding of Juma and Neema', type: 'Type', date: 'Date', time: 'Time', venue: 'Venue', host: 'Host or family', phone: 'Phone / WhatsApp', expected: 'Guests expected', budget_t: 'Budget (TZS)', target: 'Michango target (TZS)', notes: 'Notes',
+    name: 'Name', ev_name: 'Event name', ev_name_ph: 'e.g. Vinny & Vale Wedding', type: 'Type', date: 'Date', time: 'Time', venue: 'Venue', host: 'Host or family', phone: 'Phone / WhatsApp', expected: 'Guests expected', budget_t: 'Budget (TZS)', target: 'Michango target (TZS)', notes: 'Notes',
     add_tpl: 'Add the usual checklist for this type', need_name: 'Please write a name.', need_amount: 'Please write an amount.',
     calendar: 'Add to calendar', g_cal: 'Google Calendar', ics: 'Phone calendar', share: 'Share summary', copied: 'Copied',
     k_tasks: 'Checklist', k_budget: 'Spent so far', k_michango: 'Michango', k_guests: 'Guests coming',
@@ -59,6 +59,7 @@ const I18N = {
     rp_mich: (tg, p, c, l) => 'Target ' + tg + ' · pledged ' + p + ' · collected ' + c + ' · not yet paid ' + l,
     rp_foot: d => 'Prepared with Eventers on ' + d + '.', rp_events: 'Events', rp_done: 'Completed', rp_year_title: y => 'Yearly report ' + y, rp_year_sub: x => x + (x === 1 ? ' event' : ' events'), rp_none: 'No events in this year yet.',
     rp_by_type: 'Events by type', rp_future: 'Future events and plans', rp_kind: 'Kind', rp_event_k: 'Event', rp_count: 'Events', rp_page: (a, b) => 'Page ' + a + ' of ' + b, rp_plan_k: d => 'Plan (reminder ' + d + ')',
+    sample_note: 'This is a sample event, so you can see how Eventers works. Look around, then remove it and add your own.', sample_remove: 'Remove the sample', sample_add: 'Show a sample event', sample_add_sub: 'Adds an example wedding with services, budget, michango, guests and programme.', sample_removed: 'Sample removed', sample_tag: 'Sample',
     more_title: 'More', language: 'Language', theme: 'Look', th_auto: 'Phone', th_light: 'Light', th_dark: 'Dark',
     backup: 'Save a backup', backup_sub: 'Download a file with everything. Keep it safe; this app keeps data only on this phone.', restore: 'Restore a backup', restore_sub: 'Replace what is here with a backup file.', restored: 'Backup restored', bad_file: 'That file is not an Eventers backup.', restore_confirm: 'Replace everything on this phone with this backup?',
     install: 'Install on this phone', install_sub: 'Puts Eventers on the home screen and works without internet.', install_ios: 'In Safari tap Share, then Add to Home Screen.', install_and: 'In Chrome tap ⋮, then Install app or Add to Home screen.',
@@ -74,7 +75,7 @@ const I18N = {
     today: 'Leo', tomorrow: 'Kesho', in_days: n => 'Baada ya siku ' + n, days_ago: n => 'Siku ' + n + ' zilizopita', no_date: 'Bado haina tarehe',
     tasks_done: (a, b) => a + ' kati ya ' + b + ' zimekamilika', collected_of: (a, b) => a + ' kati ya ' + b + ' zimekusanywa',
     edit: 'Badili', edit_event: 'Badili tukio', save: 'Hifadhi', cancel: 'Ghairi', delete: 'Futa', confirm_delete: 'Bonyeza tena kufuta', close: 'Funga', saved: 'Imehifadhiwa', deleted: 'Imefutwa', back: '‹ Matukio yote',
-    name: 'Jina', ev_name: 'Jina la tukio', ev_name_ph: 'mf. Harusi ya Juma na Neema', type: 'Aina', date: 'Tarehe', time: 'Saa', venue: 'Ukumbi / mahali', host: 'Mwenyeji au familia', phone: 'Simu / WhatsApp', expected: 'Wageni wanaotarajiwa', budget_t: 'Bajeti (TZS)', target: 'Lengo la michango (TZS)', notes: 'Maelezo',
+    name: 'Jina', ev_name: 'Jina la tukio', ev_name_ph: 'mf. Harusi ya Vinny na Vale', type: 'Aina', date: 'Tarehe', time: 'Saa', venue: 'Ukumbi / mahali', host: 'Mwenyeji au familia', phone: 'Simu / WhatsApp', expected: 'Wageni wanaotarajiwa', budget_t: 'Bajeti (TZS)', target: 'Lengo la michango (TZS)', notes: 'Maelezo',
     add_tpl: 'Ongeza orodha ya kawaida ya aina hii', need_name: 'Tafadhali andika jina.', need_amount: 'Tafadhali andika kiasi.',
     calendar: 'Weka kwenye kalenda', g_cal: 'Google Calendar', ics: 'Kalenda ya simu', share: 'Shiriki muhtasari', copied: 'Imenakiliwa',
     k_tasks: 'Orodha', k_budget: 'Kilicholipwa', k_michango: 'Michango', k_guests: 'Wageni watakaokuja',
@@ -102,6 +103,7 @@ const I18N = {
     rp_mich: (tg, p, c, l) => 'Lengo ' + tg + ' · ahadi ' + p + ' · zilizokusanywa ' + c + ' · bado ' + l,
     rp_foot: d => 'Imeandaliwa na Eventers tarehe ' + d + '.', rp_events: 'Matukio', rp_done: 'Yamekamilika', rp_year_title: y => 'Ripoti ya mwaka ' + y, rp_year_sub: x => 'Matukio ' + x, rp_none: 'Bado hakuna matukio mwaka huu.',
     rp_by_type: 'Matukio kwa aina', rp_future: 'Matukio ya baadaye na mipango', rp_kind: 'Aina', rp_event_k: 'Tukio', rp_count: 'Matukio', rp_page: (a, b) => 'Ukurasa ' + a + ' kati ya ' + b, rp_plan_k: d => 'Mpango (ukumbusho ' + d + ')',
+    sample_note: 'Hili ni tukio la mfano, ili uone jinsi Eventers inavyofanya kazi. Litazame, kisha liondoe na uweke yako.', sample_remove: 'Ondoa mfano', sample_add: 'Onyesha tukio la mfano', sample_add_sub: 'Inaongeza harusi ya mfano yenye huduma, bajeti, michango, wageni na ratiba.', sample_removed: 'Mfano umeondolewa', sample_tag: 'Mfano',
     more_title: 'Zaidi', language: 'Lugha', theme: 'Mwonekano', th_auto: 'Simu', th_light: 'Mwanga', th_dark: 'Giza',
     backup: 'Hifadhi nakala', backup_sub: 'Pakua faili lenye kila kitu. Liweke salama; programu hii inaweka data kwenye simu hii tu.', restore: 'Rejesha nakala', restore_sub: 'Badilisha kilichopo kwa faili la nakala.', restored: 'Nakala imerejeshwa', bad_file: 'Faili hili si nakala ya Eventers.', restore_confirm: 'Badilisha kila kitu kwenye simu hii kwa nakala hii?',
     install: 'Weka kwenye simu', install_sub: 'Inaweka Eventers kwenye skrini ya mwanzo na inafanya kazi bila intaneti.', install_ios: 'Kwenye Safari bonyeza Share, kisha Add to Home Screen.', install_and: 'Kwenye Chrome bonyeza ⋮, kisha Install app au Add to Home screen.',
@@ -229,7 +231,7 @@ function checkPlans() {
 function eventCard(e) {
   const s = stats(e), k = e.date ? daysTo(e.date) : null;
   const c = k == null ? chip('plain', t('no_date')) : k < 0 ? chip('plain', when(e.date)) : k <= 7 ? chip('bad', when(e.date)) : k <= 30 ? chip('warn', when(e.date)) : chip('good', when(e.date));
-  return `<button class="card" data-act="open" data-id="${e.id}"><span class="c1"><b>${esc(e.name)}</b>${c}</span>` +
+  return `<button class="card" data-act="open" data-id="${e.id}"><span class="c1"><b>${esc(e.name)}</b>${e.sample ? chip('plain', t('sample_tag')) : c}</span>` +
     `<span class="c2"><span>${esc([t('t_' + e.type), e.date ? nice(e.date) + (e.time ? ' ' + e.time : '') : '', e.venue].filter(Boolean).join(' · '))}</span></span>` +
     (s.tasks ? `<span class="c3">${esc(t('tasks_done', s.done, s.tasks))}</span>${bar(s.done, s.tasks, 'good')}` : '') +
     (s.pledged ? `<span class="c3">${esc(t('k_michango'))}: ${esc(t('collected_of', money(s.collected), money(s.pledged)))}</span>` : '') + `</button>`;
@@ -260,6 +262,7 @@ function vEvent() {
     `<button class="kpi" data-act="tab" data-v="budget"><span class="l">${t('k_budget')}</span><span class="v">${money(s.paid)}</span><span class="s">${n(e.budget) ? t('b_budget') + ' ' + money(e.budget) : t('b_committed') + ' ' + money(s.committed)}</span></button>` +
     `<button class="kpi" data-act="tab" data-v="pledges"><span class="l">${t('k_michango')}</span><span class="v">${money(s.collected)}</span><span class="s">${t('m_pledged')} ${money(s.pledged)}</span></button>` +
     `<button class="kpi" data-act="tab" data-v="guests"><span class="l">${t('k_guests')}</span><span class="v">${s.yes}</span><span class="s">${t('g_invited')} ${s.invited}${n(e.expected) ? ' / ' + n(e.expected) : ''}</span></button></div>`;
+  if (e.sample) h += `<div class="warnbox row" id="sampleNote"><span>${t('sample_note')}</span><button class="btn sm" data-act="sample-remove">${t('sample_remove')}</button></div>`;
   h += seg('tabs', 'tab', TABS.map(x => [x, t('tab_' + x)]), ui.tab);
   return h + `<div id="tabBody" class="list">${TAB[ui.tab](e, s)}</div>`;
 }
@@ -347,6 +350,7 @@ function vMore() {
   return `<h2>${t('more_title')}</h2>` +
     `<section class="panel"><h3>${t('language')}</h3>${seg('langSeg', 'lang', [['sw', 'Kiswahili'], ['en', 'English']], P.lang)}<h3>${t('theme')}</h3>${seg('themeSeg', 'theme', [['auto', t('th_auto')], ['light', t('th_light')], ['dark', t('th_dark')]], P.theme)}</section>` +
     `<div class="menu"><button data-act="backup" id="backupBtn"><span><span class="mt">${t('backup')}</span><br><span class="ms">${t('backup_sub')}</span></span><span class="go">›</span></button>` +
+    (rows('events', e => e.sample).length ? '' : `<button data-act="sample-add"><span><span class="mt">${t('sample_add')}</span><br><span class="ms">${t('sample_add_sub')}</span></span><span class="go">›</span></button>`) +
     `<button data-act="restore"><span><span class="mt">${t('restore')}</span><br><span class="ms">${t('restore_sub')}</span></span><span class="go">›</span></button>` +
     (standalone ? '' : `<button data-act="install"><span><span class="mt">${t('install')}</span><br><span class="ms">${installEvt ? t('install_sub') : ios ? t('install_ios') : t('install_and')}</span></span><span class="go">›</span></button>`) + `</div>` +
     `<p class="hint">${t('phone_only')}</p><p class="hint">Eventers, ${t('version')} ${VERSION}</p><input type="file" id="restoreFile" accept="application/json,.json" hidden>`;
@@ -484,6 +488,34 @@ async function saveDocPdf(btn) {
     if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); toast(t('rep_saved'));
   } finally { btn.disabled = false; btn.textContent = old; }
+}
+
+/* ---------- sample event: shows a full event until the owner removes it ---------- */
+function seedSample() {
+  const sw = P.lang === 'sw', d = addDays(today(), 75), S = { sample: true };
+  const ev = put('events', Object.assign({ kind: 'event', name: sw ? 'Harusi ya Vinny na Vale' : 'Vinny & Vale Wedding', type: 'wedding', date: d, time: '16:00', venue: 'Bustani Gardens', host: sw ? 'Familia ya Vinny' : 'Vinny’s family', phone: '', budget: 25000000, target: 15000000, expected: 300, notes: '', services: DEF_SVC.slice() }, S));
+  addTemplate(DB.events[ev]); of('tasks', ev).slice(0, 3).forEach(x => { x.done = true; });
+  const vend = (name, person, service, phone, area, agreed, paid) => { const vid = put('vendors', Object.assign({ name, person, service, phone, area, notes: '', logo: '' }, S)); put('bookings', Object.assign({ eventId: ev, vendorId: vid, service, agreed, paid, notes: '' }, S)); };
+  vend('Bustani Gardens', 'Mr. Mushi', 'venue', '0712 000 101', 'Mbezi Beach', 6000000, 3000000);
+  vend('Ladha Catering', 'Mama Rehema', 'food', '0713 000 202', 'Sinza', 7500000, 2500000);
+  vend('Pamba Decor', 'Asha', 'decor', '0714 000 303', 'Kinondoni', 3000000, 1500000);
+  vend('MC Baraka', 'Baraka', 'sound', '0715 000 404', 'Mikocheni', 1500000, 1500000);
+  vend('Safari Coaches', 'Hemedi', 'transport', '0716 000 505', 'Ubungo', 800000, 0);
+  put('lines', Object.assign({ eventId: ev, item: sw ? 'Soda na maji' : 'Soft drinks and water', category: 'drinks', cost: 1200000, paid: 0, notes: '' }, S));
+  put('lines', Object.assign({ eventId: ev, item: sw ? 'Kadi 300' : '300 invitation cards', category: 'cards', cost: 450000, paid: 450000, notes: '' }, S));
+  [['Uncle Peter', 500000, 500000], ['Aunt Grace', 300000, 100000], ['Musa Ally', 200000, 0], ['Halima Said', 250000, 250000], ['John Kweka', 150000, 50000]].forEach(([name, pledged, paid]) =>
+    put('pledges', Object.assign({ eventId: ev, name, phone: '', pledged, payments: paid ? [{ date: today(), amount: paid }] : [], notes: '' }, S)));
+  [['Uncle Peter', 'A001', 2, 'yes'], ['Aunt Grace', 'A002', 2, 'yes'], ['Musa Ally', 'A003', 1, 'maybe'], ['Halima Said', 'A004', 2, ''], ['John Kweka', 'A005', 1, 'no']].forEach(([name, card, seats, rsvp]) =>
+    put('guests', Object.assign({ eventId: ev, name, phone: '', card, seats, group: '', rsvp, arrived: false }, S)));
+  (sw ? [['15:00', 'Wageni kuwasili', 'Walinzi wa mlango'], ['16:30', 'Maharusi kuingia', 'MC'], ['17:30', 'Hotuba', 'Familia'], ['18:30', 'Chakula', 'Mpishi'], ['20:00', 'Keki na ngoma', 'MC']]
+      : [['15:00', 'Guests arrive', 'Gate team'], ['16:30', 'Couple enters', 'MC'], ['17:30', 'Speeches', 'Families'], ['18:30', 'Dinner', 'Caterer'], ['20:00', 'Cake and dancing', 'MC']]).forEach(([time, title, who]) => put('items', Object.assign({ eventId: ev, time, title, who }, S)));
+  put('events', Object.assign({ kind: 'plan', name: sw ? 'Safari ya Saadani' : 'Trip to Saadani', type: 'trip', date: addDays(today(), 200), time: '', venue: 'Saadani', host: '', phone: '', budget: 3000000, target: 0, expected: 20, notes: '', services: ['transport', 'food'] }, S));
+  persist(); P.seeded = 1; savePrefs();
+}
+function removeSample() {
+  rows('events', e => e.sample).forEach(e => remove('events', e.id));
+  rows('vendors', o => o.sample && !rows('bookings', b => b.vendorId === o.id).length).forEach(o => remove('vendors', o.id));
+  toast(t('sample_removed')); go('home');
 }
 
 /* ---------- forms ---------- */
@@ -672,6 +704,8 @@ const ACT = {
     if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = t('confirm_delete'); return; }
     remove(F.tb, f.id); closeForm(); toast(t('deleted')); renderAll();
   },
+  'sample-remove': () => removeSample(),
+  'sample-add': () => { seedSample(); go('home'); },
   promote: () => { const e = get('events', ui.eid); put('events', Object.assign({}, e, { kind: 'event' })); if (!of('tasks', e.id).length) addTemplate(DB.events[e.id]); toast(t('promoted')); renderAll(); },
   'ev-report': () => { ui.rtab = 'event'; ui.rid = ui.eid; go('reports'); },
   'svc-del': b => { const e = get('events', ui.eid); put('events', Object.assign({}, e, { services: evCats(e).filter(c => c !== b.dataset.v) })); render(); },
@@ -719,6 +753,7 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instal
 if (!localStorage.getItem(PKEY)) P.lang = /^sw/i.test(navigator.language || '') ? 'sw' : (navigator.language || '').startsWith('en') ? 'en' : 'sw';
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!P.seeded && !rows('events').length && !rows('vendors').length) seedSample();
 renderAll();
 checkPlans();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkPlans(); });
